@@ -1,0 +1,1 @@
+{'plugins', 'repo', 'scrooloose', 'nerdtree', 'on_cmd', 'NERDTreeToggle', 'simeji', 'winresizer', 'Shougo', 'neocomplete', 'on_i', 'hook_add', 'enable_at_startup', 'enable_ignore_case', 'enable_smart_case', 'enable_auto_select', 'enable_enable_camel_case_completion', 'exists', 'keyword_patterns', 'endif', 'inoremap', 'expr', 'pumvisible'}

@@ -159,7 +159,6 @@ colorscheme onedark
 set nowrap
 set vb t_vb=
 set timeout timeoutlen=50
-
 "キーリマップ系
 nnoremap Y y$
 nnoremap + <C-a>
@@ -182,3 +181,4 @@ nnoremap <F5> :set noscb <CR>
 nnoremap ; :
 xnoremap <expr> p 'pgv"'.v:register.'y`>'
 nnoremap <silent><C-e> :NERDTreeToggle<CR>
+set backspace =indent,eol,start

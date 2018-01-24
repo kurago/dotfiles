@@ -8,10 +8,9 @@ let g:dein#_runtime_path = '/home/kurahara/.cache/dein/.cache/.vimrc/.dein'
 let g:dein#_cache_path = '/home/kurahara/.cache/dein/.cache/.vimrc'
 let &runtimepath = '/home/kurahara/.cache/dein/repos/github.com/Shougo/dein.vim/,/home/kurahara/.vim,/usr/share/vim/vimfiles,/home/kurahara/.cache/dein/.cache/.vimrc/.dein,/usr/share/vim/vim80,/home/kurahara/.cache/dein/.cache/.vimrc/.dein/after,/usr/share/vim/vimfiles/after,/home/kurahara/.vim/after'
 filetype off
-silent! command -complete=customlist,dein#autoload#_dummy_complete -bang -bar -range -nargs=* <C-w> call dein#autoload#_on_cmd('<C-w>', 'winresizer', <q-args>,  expand('<bang>'), expand('<line1>'), expand('<line2>'))
 silent! command -complete=customlist,dein#autoload#_dummy_complete -bang -bar -range -nargs=* NERDTreeToggle call dein#autoload#_on_cmd('NERDTreeToggle', 'nerdtree', <q-args>,  expand('<bang>'), expand('<line1>'), expand('<line2>'))
-    let g:lightline = { 'colorscheme': 'onedark'}
     colorscheme onedark 
+    let g:lightline = { 'colorscheme': 'onedark'}
     let g:neocomplete#enable_at_startup = 1
     let g:neocomplete#enable_ignore_case = 1
     let g:neocomplete#enable_smart_case = 1

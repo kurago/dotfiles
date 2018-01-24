@@ -1,2 +1,2 @@
 100
-['Shougo/neocomplete.vim', 'itchyny/lightline.vim', 'joshdick/onedark.vim', 'scrooloose/nerdtree', 'simeji/winresizer']
+['Shougo/neocomplete.vim', 'cohama/lexima.vim', 'itchyny/lightline.vim', 'joshdick/onedark.vim', 'scrooloose/nerdtree']

@@ -1,0 +1,1 @@
+{'SUBROUTINE', 'SETUP', 'fdtdcom', 'double', 'precision', 'cnn0', 'integer', 'SQRT', 'STOP', 'FREQUENCY', 'IMPEDANCE', 'DIRECTIVITY', 'MSTOPFREQ', 'NINT', 'REAL', 'MFFT', 'RESET', 'IDONE', 'IDTWO', 'IDTHRE', 'IDFOUR', 'CMPLX', 'RETURN'}

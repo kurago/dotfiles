@@ -1,0 +1,2410 @@
+!******** 3D FDTD PROGRAM **************************************************
+!
+!******** MAIN *************************************************************
+!
+      INCLUDE'fdtdcom.f90'
+!      OPEN(41,FILE='REFRECT_REAL.csv')
+!      OPEN(42,FILE='REFRECT_IMAG.csv')
+!      OPEN(41,FILE='REFRECT.csv')
+!      OPEN(43,FILE='REFRECT_ABS.csv')
+!      OPEN(44,FILE='SIMP.csv')
+!      OPEN(45,FILE='REF_ISOU.csv')
+!      OPEN(46,FILE='TRANSMIT.csv')
+!     OPEN(47,FILE='TRANSMIT_ABS.csv')
+!      OPEN(48,FILE='TRANS_ISOU.csv')
+!      Z=(1+(0.999966+0.00813*CJ))/(1-(0.999966+0.00813*CJ))*Z0
+!      WRITE(*,*)Z
+      write(*,*)dt
+      CALL SETUP
+      CALL SETYUUDEN
+      CALL SETPML
+      CALL FREESPACE
+      CALL SETMODEL
+      CALL YUUDENTAI
+      CALL MODEL
+      CALL DIPOLEX
+!      CALL DIPOLEY
+!      CALL DIPOLEZ
+
+      CALL plotmaker
+
+	!	   go to 500
+
+      DO N=1,NSTEP
+
+      IF(MOD(N,100)==0) THEN
+        WRITE(*,*) N
+      END IF
+
+
+!      CALL PBCXH
+!      CALL PBCYH
+      CALL EFIELD
+!
+      CALL EPML
+
+!
+      T=T+DDT
+!
+!         CALL PBCXE
+!         CALL PBCYE
+         CALL HFIELD
+!
+         CALL HPML
+!
+      T=T+DDT
+!
+!
+      IF(N.LE.8000)THEN
+       IF(N.EQ.1.OR.MOD(N,kizami).EQ.0)THEN
+      CALL OUTPUT
+       END IF
+      END IF
+
+      END DO
+
+      CALL CEFFT(MFFT,CVD1,1,IRR)
+      CALL CEFFT(MFFT,CVD2,1,IRR)
+      CALL CEFFT(MFFT,CI1,1,IRR)
+      CALL CEFFT(MFFT,CI2,1,IRR)
+
+      CALL DATAIMP!IMPEDANCE_PROPERTY(FREQENCY)
+!
+!      CALL DATAFEED
+!      CALL CEFFT(MFFT,CVA,1,IRR)
+!      CALL CEFFT(MFFT,CVB,1,IRR)
+!      CALL CEFFT(MFFT,CVC,1,IRR)
+!      CALL CEFFT(MFFT,CVD,1,IRR)
+!      CALL CEFFT(MFFT,CVC,1,IRR)
+!      CALL DATAREFRECT
+
+      CALL COUNTER
+
+!      CLOSE(41)
+!!      CLOSE(42)
+!      CLOSE(43)
+!      CLOSE(44)
+!      CLOSE(45)
+!      CLOSE(46)
+!      CLOSE(47)
+!      CLOSE(48)
+!
+      STOP
+500      END
+!
+
+
+!****************************************************************************
+      SUBROUTINE RESET
+!****************************************************************************
+      !
+      INCLUDE'fdtdcom.f90'
+
+      EX1(:,:,:)=(0.0,0.0)
+      EY1(:,:,:)=(0.0,0.0)
+      EZ1(:,:,:)=(0.0,0.0)
+      EX2(:,:,:)=(0.0,0.0)
+      EY2(:,:,:)=(0.0,0.0)
+      EZ2(:,:,:)=(0.0,0.0)
+      HX1(:,:,:)=(0.0,0.0)
+      HY1(:,:,:)=(0.0,0.0)
+      HZ1(:,:,:)=(0.0,0.0)
+      HX2(:,:,:)=(0.0,0.0)
+      HY2(:,:,:)=(0.0,0.0)
+      HZ2(:,:,:)=(0.0,0.0)
+
+      EXYZ01(:,:,:)=(0.0,0.0)
+      EXZZ01(:,:,:)=(0.0,0.0)
+      EYXZ01(:,:,:)=(0.0,0.0)
+      EYZZ01(:,:,:)=(0.0,0.0)
+
+      EXYZ02(:,:,:)=(0.0,0.0)
+      EXZZ02(:,:,:)=(0.0,0.0)
+      EYXZ02(:,:,:)=(0.0,0.0)
+      EYZZ02(:,:,:)=(0.0,0.0)
+
+      HXYZ01(:,:,:)=(0.0,0.0)
+      HXZZ01(:,:,:)=(0.0,0.0)
+      HYXZ01(:,:,:)=(0.0,0.0)
+      HYZZ01(:,:,:)=(0.0,0.0)
+
+      HXYZ02(:,:,:)=(0.0,0.0)
+      HXZZ02(:,:,:)=(0.0,0.0)
+      HYXZ02(:,:,:)=(0.0,0.0)
+      HYZZ02(:,:,:)=(0.0,0.0)
+
+
+      EXYZ11(:,:,:)=(0.0,0.0)
+      EXZZ11(:,:,:)=(0.0,0.0)
+      EYXZ11(:,:,:)=(0.0,0.0)
+      EYZZ11(:,:,:)=(0.0,0.0)
+
+      EXYZ12(:,:,:)=(0.0,0.0)
+      EXZZ12(:,:,:)=(0.0,0.0)
+      EYXZ12(:,:,:)=(0.0,0.0)
+      EYZZ12(:,:,:)=(0.0,0.0)
+
+      HXYZ11(:,:,:)=(0.0,0.0)
+      HXZZ11(:,:,:)=(0.0,0.0)
+      HYXZ11(:,:,:)=(0.0,0.0)
+      HYZZ11(:,:,:)=(0.0,0.0)
+
+      HXYZ12(:,:,:)=(0.0,0.0)
+      HXZZ12(:,:,:)=(0.0,0.0)
+      HYXZ12(:,:,:)=(0.0,0.0)
+      HYZZ12(:,:,:)=(0.0,0.0)
+
+      CVA(:)=(0.0,0.0)
+      CVB(:)=(0.0,0.0)
+      CVC(:)=(0.0,0.0)
+      CVD(:)=(0.0,0.0)
+
+      SOURCE1=(0.0,0.0)
+      SOURCE2=(0.0,0.0)
+      VS=(0.0,0.0)
+      FV1=(0.0,0.0)
+      FV2=(0.0,0.0)
+      N=0
+	    T=0
+      F=DF
+      ET(1)=0.0
+
+
+      RETURN
+      END
+
+
+
+
+!
+!
+!****************************************************************************
+      SUBROUTINE SETUP
+!****************************************************************************
+!
+      INCLUDE'fdtdcom.f90'
+!
+!*** FOR FREQPARA ***
+!
+      Bx=0
+!-------------------original----------------------
+      FREQ=15.0E9
+      ALPHA=1/(2*WIDE)
+      TAU0=4*ALPHA
+!      TAU0=3*ALPHA
+      TAU=2*TAU0
+      BW=3/(ALPHA*PI)
+
+      IF(theta.EQ.0)THEN
+      F0=FREQ
+      ELSE
+      F0=FREQ+BW/2
+      END IF
+
+       W=2*PI*F0
+	    B0=W/FC
+      BTX=B0*(NX-2)*DX*sin(theta)*cos(fai)
+      BTY=B0*(NY-2)*DY*sin(theta)*sin(fai)
+      BCO=0
+!--------------------------------------------------
+!      ALPHA=1/(2*F0)
+!      TAU0=4*ALPHA
+!      TAU=2*TAU0
+!      BW=3/ALPHA
+
+!      IF(theta.EQ.0)THEN
+!      FREQ=F0
+!      ELSE
+!      FREQ=F0+Bx*FC/(2*PI)
+!      BxMAX=2*PI*FMAX*sin(theta)/FC
+!      BxSTEP=BxMAX/MSTEP
+!      END IF
+
+!      W=2*PI*FREQ
+!      B0=W/FC
+!      BTX=Bx*(NX-2)*DX
+!      BTY=B0*(NY-2)*DY*sin(theta)*sin(fai)
+!      BCO=0
+
+
+      CR=(1.0,0.0)
+      CJ=(0.0,1.0)
+      DT=0.99/(SQRT((1.0/DX)**2+(1.0/DY)**2+(1.0/DZ)**2)*FC)
+      WRITE(*,*)DT
+      DDT=DT*0.5
+!
+!*** STOP FREQUENCY FOR IMPEDANCE AND DIRECTIVITY ***
+!
+      MSTOPFREQ=NINT(REAL(MFFT)*DT*FMAX)
+!
+!*** FOR FREE SPACE E-FIELD ***
+!
+      EC0=(2*YUU0-DT*SIGMA0)/(2*YUU0+DT*SIGMA0)
+      ECRLX0=(2*DT/(DX*(2*YUU0+DT*SIGMA0)))
+      ECRLY0=(2*DT/(DY*(2*YUU0+DT*SIGMA0)))
+      ECRLZ0=(2*DT/(DZ*(2*YUU0+DT*SIGMA0)))
+
+!
+!*** FOR FREE SPACE H-FIELD ***
+!
+      HCRLX=DT/(DX*UMU)
+      HCRLY=DT/(DY*UMU)
+      HCRLZ=DT/(DZ*UMU)
+!
+      T=0.0
+      ET(1)=0.0
+      HT(1)=DDT
+      DF=1/(MFFT*DT)
+      F=DF
+!
+
+!
+!*** FOR MODEL SIZE ***
+      NXWIDE=80
+      NYWIDE=80
+      NZWIDE=NZ-77
+
+!*** FOR DOUTAI PATCH***
+      NXWIDE2=80
+      NYWIDE2=80
+      NZWIDE2=0
+
+!*** FOR DOUTAI BASE***
+      NXWIDE3=80
+      NYWIDE3=80
+      NZWIDE3=0
+
+!*** FOR YUUDENTAI ***
+      NXWIDE4=80
+      NYWIDE4=80
+      NZWIDE4=NZ-77
+
+
+! *** FOR COUNTER ***
+!      XYWC2=1
+!      XYWC3=0
+!      ZWC=0
+
+      RETURN
+      END
+!
+!****************************************************************************
+      SUBROUTINE COUNTER
+!****************************************************************************
+      INCLUDE'fdtdcom.f90'
+
+!      XYWC2=XYWC2+1
+!      XYWC3=XYWC3+1
+!      ZWC=ZWC+1
+       BCO=BCO+1
+      RETURN
+      END
+
+!---------------------------------------
+       SUBROUTINE SETMODEL
+!---------------------------------------
+       INCLUDE'fdtdcom.f90'
+
+!
+!*** FOR MODEL SIZE ***
+!
+      IST=IFEED-NXWIDE
+      IED=IFEED+NXWIDE
+      JST=JFEED-NYWIDE
+      JED=JFEED+NYWIDE
+      KST=LPML+40
+!      KST=NZ1/2
+      KED=KST+NZWIDE
+
+!
+!*** FOR DOUTAI PATCH ***
+!
+      IST2=IFEED-NXWIDE2
+      IED2=IFEED+NXWIDE2
+      JST2=JFEED-NYWIDE2
+      JED2=JFEED+NYWIDE2
+      KST2=KST
+      KED2=KST2+NZWIDE2
+
+!*** FOR DOUTAI BASE ***
+
+      IST3=IFEED-NXWIDE3
+      IED3=IFEED+NXWIDE3
+      JST3=JFEED-NYWIDE3
+      JED3=JFEED+NYWIDE3
+      KST3=KED
+      KED3=KST3+NZWIDE3
+
+!*** FOR YUUDENTAI ***
+
+      IST4=IFEED-NXWIDE4
+      IED4=IFEED+NXWIDE4
+      JST4=JFEED-NYWIDE4
+      JED4=JFEED+NYWIDE4
+      KST4=KST
+      KED4=KST4+NZWIDE4
+
+
+!*** PATCH ***
+      tate=71
+      yoko=tate
+      sukima=1
+      feed=1+LPML+tate/2
+      ue=LPML+tate+1
+      START=LPML+20
+
+
+!      KOBS1=50
+
+! *** FOR KYUUDEN ***
+!      KFP=KST2-1
+!      KFP=20
+!      KOBS1=40
+      RETURN
+      END
+
+
+!--------------------------------------
+      SUBROUTINE FREESPACE
+!--------------------------------------
+      INCLUDE'fdtdcom.f90'
+!
+      DO I=1,NX
+       DO J=1,NY
+        DO K=1,NZ
+          IDONE(I,J,K)=0
+          IDTWO(I,J,K)=0
+          IDTHRE(I,J,K)=0
+	      IDFOUR(I,J,K)=0
+	      IDFIVE(I,J,K)=0
+        END DO
+       END DO
+      END DO
+!
+      RETURN
+      END
+!
+
+
+!---------------------------------------
+       SUBROUTINE SETYUUDEN
+!---------------------------------------
+       INCLUDE'fdtdcom.f90'
+
+       YUU(1)=3.66*YUU0
+!       YUU(1)=1.0*YUU0
+       SIGMA(1)=0.00
+!       SIGMA(1)=0.02
+       YUU(2)=(YUU0+YUU(1))/2.0
+       SIGMA(2)=0.00
+!       SIGMA(2)=0.02
+
+        !IDONE=METAL
+        !IDTWO=YUU1=YUUDEN
+        !IDTHREE=YUU2=AVE
+        !IDFOUR=YUU3=RESITIVE
+
+      DO K=1,2
+        EC(K)=(2*YUU(K)-DT*SIGMA(K))/(2*YUU(K)+DT*SIGMA(K))
+        ECRLX(K)=(2*DT/(DX*(2*YUU(K)+DT*SIGMA(K))))
+        ECRLY(K)=(2*DT/(DY*(2*YUU(K)+DT*SIGMA(K))))
+        ECRLZ(K)=(2*DT/(DZ*(2*YUU(K)+DT*SIGMA(K))))
+      END DO
+      RETURN
+      END
+
+!**************************************************************************
+!   CREATE MODEL
+!**************************************************************************
+
+      subroutine make_squarexy(xx,yy,zz,nn)
+      include'fdtdcom.f90'
+
+          if (1<=xx .and. 1<=yy .and. 1<=zz) then
+            idtwo(xx,yy,zz)=nn
+            idone(xx,yy,zz)=nn
+          end if
+
+					if ((1<=xx .and. 1<=yy+1 .and. 1<=zz) .and. yy+1<=ny) then
+						idone(xx,yy+1,zz)=nn
+					end if
+
+					if ((1<=xx+1 .and. 1<=yy .and. 1<=zz) .and. xx+1<=nx) then
+						idtwo(xx+1,yy,zz)=nn
+					end if
+
+      return
+      end
+
+      subroutine make_squarexy2(xx,yy,zz,nn)
+      include'fdtdcom.f90'
+
+          if (1<=xx .and. 1<=yy .and. 1<=zz) then
+            idtwo(xx,yy,zz)=nn
+            idone(xx,yy,zz)=nn
+            idfour(xx,yy,zz)=nn
+            idfive(xx,yy,zz)=nn
+          end if
+
+					if ((1<=xx .and. 1<=yy+1 .and. 1<=zz) .and. yy+1<=ny) then
+						idone(xx,yy+1,zz)=nn
+						idfour(xx,yy+1,zz)=nn
+					end if
+
+					if ((1<=xx+1 .and. 1<=yy .and. 1<=zz) .and. xx+1<=nx) then
+						idtwo(xx+1,yy,zz)=nn
+						idfive(xx,yy+1,zz)=nn
+					end if
+
+      return
+      end
+
+      subroutine make_squareyz(XX,YY,ZZ,NN)
+      INCLUDE'fdtdcom.f90'
+
+          if (1<=XX .and. 1<=YY .and. 1<=ZZ) then
+            IDTWO(XX,YY,ZZ)=NN
+            IDTHRE(XX,YY,ZZ)=NN
+          end if
+
+          if ((1<=XX .and. 1<=YY+1 .and. 1<=ZZ) .and. YY+1<=NY) then
+            IDTHRE(XX,YY+1,ZZ)=NN
+          end if
+
+          if ((1<=XX .and. 1<=YY .and. 1<=ZZ+1) .and. ZZ+1<=NZ) then
+            IDTWO(XX,YY,ZZ+1)=NN
+          end if
+
+      return
+      end
+
+      subroutine make_squarezx(XX,YY,ZZ,NN)
+      INCLUDE'fdtdcom.f90'
+
+          if (1<=XX .and. 1<=YY .and. 1<=ZZ) then
+            IDONE(XX,YY,ZZ)=NN
+            IDTHRE(XX,YY,ZZ)=NN
+          end if
+
+          if ((1<=XX+1 .and. 1<=YY .and. 1<=ZZ) .and. XX+1<=NX) then
+            IDTHRE(XX+1,YY,ZZ)=NN
+          end if
+
+          if ((1<=XX .and. 1<=YY .and. 1<=ZZ+1) .and. ZZ+1<=NZ) then
+            IDONE(XX,YY,ZZ+1)=NN
+          end if
+
+      return
+      end
+
+      subroutine make_cube(XX,YY,ZZ,NN)
+      INCLUDE'fdtdcom.f90'
+
+          if (1<=XX .and. 1<=YY .and. 1<=ZZ) then
+            IDONE(XX,YY,ZZ)=NN
+            IDTWO(XX,YY,ZZ)=NN
+            IDTHRE(XX,YY,ZZ)=NN
+          end if
+
+          if ((1<=XX+1 .and. 1<=YY .and. 1<=ZZ) .and. XX+1<=NX) then
+            IDTWO(XX+1,YY,ZZ)=NN
+            IDTHRE(XX+1,YY,ZZ)=NN
+          end if
+
+          if ((1<=XX .and. 1<=YY+1 .and. 1<=ZZ) .and. YY+1<=NY) then
+            IDONE(XX,YY+1,ZZ)=NN
+            IDTHRE(XX,YY+1,ZZ)=NN
+          end if
+
+          if ((1<=XX .and. 1<=YY .and. 1<=ZZ+1) .and. ZZ+1<=NZ) then
+            IDONE(XX,YY,ZZ+1)=NN
+            IDTWO(XX,YY,ZZ+1)=NN
+          end if
+
+          if ((1<=XX .and. 1<=YY+1 .and. 1<=ZZ+1) .and.&
+       (YY+1<=NY .and. ZZ+1<=NZ)) then
+            IDONE(XX,YY+1,ZZ+1)=NN
+          end if
+          if ((1<=XX+1 .and. 1<=YY .and. 1<=ZZ+1) .and.&
+       (XX+1<=NX .and. ZZ+1<=NZ)) then
+            IDTWO(XX+1,YY,ZZ+1)=NN
+          end if
+          if ((1<=XX+1 .and. 1<=YY+1 .and. 1<=ZZ) .and.  &
+       (XX+1<=NX .and. YY+1<=NY)) then
+            IDTHRE(XX+1,YY+1,ZZ)=NN
+          end if
+
+      return
+      end
+
+
+
+!****************************************************************************
+      SUBROUTINE YUUDENTAI
+!****************************************************************************
+      INCLUDE'fdtdcom.f90'
+
+ !********DIELECTRIC_TEMAE********
+       DO K=KST,KED-1
+          DO J=START+1,NY-START
+             DO I=START+1,NX-START
+
+			 call make_cube(I,J,K,2)
+             END DO
+          END DO
+       END DO
+
+!*** FOR AVE ***
+
+          DO J=START+1,NY-START
+             DO I=START+1,NX-START
+			  call make_squarexy(I,J,KST,3)
+!			  call make_squarexy(I,J,KED4,3)
+
+             END DO
+          END DO
+
+          RETURN
+      END
+
+!**************************************************************************
+      SUBROUTINE MODEL
+!**************************************************************************
+!
+      INCLUDE'fdtdcom.f90'
+!
+
+!*** PATCH1 ***
+          DO P=1,4
+              DO S=1,4
+                  DO J=START+sukima*2*(P)+tate*(P-1),START-1+(sukima*2+tate)*P
+
+                     DO I=START+sukima*2*(s)+tate*(s-1),START-1+(sukima*2+tate)*s
+                      call make_squarexy(I,J,KST,1)
+                     END DO
+                  END DO
+              end DO
+          end DO
+     
+!****CONDUCTOR****
+          DO J=START+1,NY-START
+             DO I=START+1,NX-START
+			  call make_squarexy(I,J,KED,1)
+             END DO
+          END DO
+
+!*****conducting bar*****
+
+       DO J=NY/2,NY/2+1
+         DO I=NX/2,NX/2+1
+           DO K=KST,KED3-1
+!			call make_cube(I,J,K,1)
+           END DO
+         END DO
+      END DO
+
+      RETURN
+      END
+
+
+!------------------------------------------
+      SUBROUTINE DIPOLEX
+!------------------------------------------
+!
+      INCLUDE'fdtdcom.f90'
+
+       DO J=JFEED-10,JFEED+9
+           DO I=IFEED-69,IFEED-2!15GHz
+			  call make_squarexy2(I,J,kst-3,1)
+           END DO
+          DO I=IFEED+1,IFEED+69!15GHz
+			  call make_squarexy2(I,J,kst-3,1)
+           END DO
+       END DO
+
+
+       DO J=JFEED-10,JFEED+9
+            I=IFEED-1
+              IDONE(I,J,kst-3)=1
+              IDFOUR(I,J,kst-3)=1
+!            I=IFEED
+!              IDTWO(I,J,kst-3)=1
+!              IDFIVE(I,J,kst-3)=1
+       END DO
+
+              IDONE(IFEED-1,JFEED+10,kst-3)=1
+              IDFOUR(IFEED-1,JFEED+10,kst-3)=1
+
+      RETURN
+      END
+
+!!------------------------------------------
+!      SUBROUTINE DIPOLEX
+!!------------------------------------------
+!!
+!      INCLUDE'fdtdcom.f90'
+!!
+!          DO I=IFEED-70,IFEED+70
+!             IDFOUR(I,JFEED,kst-3)=1
+!             IDONE(I,JFEED,kst-3)=1
+!          END DO
+!!
+!      RETURN
+!      END
+	  
+
+!------------------------------------------
+      SUBROUTINE DIPOLEY
+!------------------------------------------
+!
+      INCLUDE'fdtdcom.f90'
+!
+          DO J=JFEED-70,JFEED+70
+             IDFOUR(IFEED,J,kst-3)=1
+          END DO
+!
+      RETURN
+      END
+	  
+!------------------------------------------
+      SUBROUTINE DIPOLEZ
+!------------------------------------------
+!
+      INCLUDE'fdtdcom.f90'
+	  
+      DO K=OBSZ-100,OBSZ+100
+         IDFOUR(IFEED,JFEED,K)=1
+      END DO
+!
+      RETURN
+      END
+	  
+!
+!****************************************************************************
+           SUBROUTINE EFIELD
+!****************************************************************************
+!
+      INCLUDE'fdtdcom.f90'
+!
+!*****************
+!    FOR EX
+!*****************
+!
+!
+
+      DO K=LPML+1,NZ-LPML
+        DO J=LPML+1,NY-LPML
+          DO I=1,NX1
+	       IF(IDFOUR(I,J,K).EQ.1)THEN
+               EX1(I,J,K)=0.0
+           ELSE
+               EX1(I,J,K)=EC0*EX1(I,J,K)&
+                       +ECRLY0*(HZ1(I,J,K)-HZ1(I,J-1,K))&
+                       -ECRLZ0*(HY1(I,J,K)-HY1(I,J,K-1))
+	       END IF
+
+
+!              IF(IDONE(I,J,K).EQ.1)THEN
+              IF((IDONE(I,J,K).EQ.1).OR.(IDFOUR(I,J,K).EQ.1))THEN
+               EX2(I,J,K)=0.0
+
+              ELSE IF(IDONE(I,J,K).EQ.2)THEN
+                 EX2(I,J,K)=EC(1)*EX2(I,J,K)&
+                          +ECRLY(1)*(HZ2(I,J,K)-HZ2(I,J-1,K))&
+                          -ECRLZ(1)*(HY2(I,J,K)-HY2(I,J,K-1))
+
+              ELSE IF(IDONE(I,J,K).EQ.3)THEN
+                 EX2(I,J,K)=EC(2)*EX2(I,J,K)&
+                          +ECRLY(2)*(HZ2(I,J,K)-HZ2(I,J-1,K))&
+                          -ECRLZ(2)*(HY2(I,J,K)-HY2(I,J,K-1))
+
+	            ELSE IF(IDONE(I,J,K).EQ.4)THEN
+                EX2(I,J,K)=EC(3)*EX2(I,J,K)&
+                          +ECRLY(3)*(HZ2(I,J,K)-HZ2(I,J-1,K))&
+                          -ECRLZ(3)*(HY2(I,J,K)-HY2(I,J,K-1))
+
+
+              ELSE
+                 EX2(I,J,K)=EC0*EX2(I,J,K)&
+                          +ECRLY0*(HZ2(I,J,K)-HZ2(I,J-1,K))&
+                          -ECRLZ0*(HY2(I,J,K)-HY2(I,J,K-1))
+              END IF
+          END DO
+        END DO
+      END DO
+!
+!*****************
+!    FOR EY
+!*****************
+!
+
+
+
+      DO K=LPML+1,NZ-LPML
+        DO I=LPML+1,NX-LPML
+          DO J=1,NY1
+
+	       IF(IDFIVE(I,J,K).EQ.1)THEN
+               EY1(I,J,K)=0.0
+           ELSE
+            EY1(I,J,K)=EC0*EY1(I,J,K)&
+                        +ECRLZ0*(HX1(I,J,K)-HX1(I,J,K-1))&
+                        -ECRLX0*(HZ1(I,J,K)-HZ1(I-1,J,K))
+	       END IF
+
+
+!              IF(IDTWO(I,J,K).EQ.1)THEN
+              IF((IDTWO(I,J,K).EQ.1).OR.(IDFIVE(I,J,K).EQ.1))THEN
+               EY2(I,J,K)=0.0
+
+              ELSE IF(IDTWO(I,J,K).EQ.2)THEN
+                 EY2(I,J,K)=EC(1)*EY2(I,J,K)&
+                          +ECRLZ(1)*(HX2(I,J,K)-HX2(I,J,K-1))&
+                          -ECRLX(1)*(HZ2(I,J,K)-HZ2(I-1,J,K))
+
+              ELSE IF(IDTWO(I,J,K).EQ.3)THEN
+                 EY2(I,J,K)=EC(2)*EY2(I,J,K)&
+                          +ECRLZ(2)*(HX2(I,J,K)-HX2(I,J,K-1))&
+                          -ECRLX(2)*(HZ2(I,J,K)-HZ2(I-1,J,K))
+
+           	 ELSE IF(IDTWO(I,J,K).EQ.4)THEN
+	            		EY2(I,J,K)=EC(3)*EY2(I,J,K)&
+                          +ECRLZ(3)*(HX2(I,J,K)-HX2(I,J,K-1))&
+                          -ECRLX(3)*(HZ2(I,J,K)-HZ2(I-1,J,K))
+
+
+              ELSE
+               EY2(I,J,K)=EC0*EY2(I,J,K)&
+                        +ECRLZ0*(HX2(I,J,K)-HX2(I,J,K-1))&
+                        -ECRLX0*(HZ2(I,J,K)-HZ2(I-1,J,K))
+              END IF
+            END DO
+         END DO
+      END DO
+!	          WRITE(*,*)EY2(6,6,100)
+!
+!*****************
+!    FOR EZ
+!*****************
+!
+
+
+      DO J=LPML+1,NY-LPML
+        DO I=LPML+1,NX-LPML
+          DO K=1,NZ1
+
+!		     IF((IDSIX(I,J,K).EQ.1))THEN
+!               EZ1(I,J,K)=0.0
+!	         ELSE
+               EZ1(I,J,K)=EC0*EZ1(I,J,K)&
+                        +ECRLX0*(HY1(I,J,K)-HY1(I-1,J,K))&
+                        -ECRLY0*(HX1(I,J,K)-HX1(I,J-1,K))
+!	         END IF
+
+
+             IF((IDTHRE(I,J,K).EQ.1))THEN
+!             IF((IDTHRE(I,J,K).EQ.1).OR.(IDSIX(I,J,K).EQ.1))THEN
+               EZ2(I,J,K)=0.0
+
+              ELSE IF(IDTHRE(I,J,K).EQ.2)THEN
+                 EZ2(I,J,K)=EC(1)*EZ2(I,J,K)&
+                          +ECRLX(1)*(HY2(I,J,K)-HY2(I-1,J,K))&
+                          -ECRLY(1)*(HX2(I,J,K)-HX2(I,J-1,K))
+
+
+              ELSE IF(IDTHRE(I,J,K).EQ.3)THEN
+                 EZ2(I,J,K)=EC(2)*EZ2(I,J,K)&
+                          +ECRLX(2)*(HY2(I,J,K)-HY2(I-1,J,K))&
+                          -ECRLY(2)*(HX2(I,J,K)-HX2(I,J-1,K))
+
+	            ELSE IF(IDTHRE(I,J,K).EQ.4)THEN
+			           EZ2(I,J,K)=EC(3)*EZ2(I,J,K)&
+                          +ECRLX(3)*(HY2(I,J,K)-HY2(I-1,J,K))&
+                          -ECRLY(3)*(HX2(I,J,K)-HX2(I,J-1,K))
+
+
+
+
+              ELSE
+               EZ2(I,J,K)=EC0*EZ2(I,J,K)&
+                        +ECRLX0*(HY2(I,J,K)-HY2(I-1,J,K))&
+                        -ECRLY0*(HX2(I,J,K)-HX2(I,J-1,K))
+              END IF
+            END DO
+         END DO
+      END DO
+!
+!
+
+!*********************
+!    FOR FEED(PLANE WAVE)
+!*********************
+!*** KYUUDEN ***
+!
+!*** FOR IMPEDANCE ***
+!
+
+!      DO J=2,NY1
+!         DO I=2,NX1
+!         SOURCE1=exp(-(T-TAU0)**2/(2*ALPHA**2))&
+!                *exp(CJ*W*T)&
+!!                *SIN(W*T)&
+!                *exp((-CJ)*B0*sin(theta)*cos(fai)*real(I)*DX)&
+!                *exp((-CJ)*B0*sin(theta)*sin(fai)*real(J)*DY)&
+!                *tanh(W*T/sharp)
+!
+!!      IF(T.LE.TAU)THEN
+!!         VS=SOURCE1
+!!      ELSE
+!!         VS=0.0
+!!      END IF
+!
+!          EY1(I,J,KFP)=EY1(I,J,KFP)-SOURCE1
+!          EY2(I,J,KFP)=EY2(I,J,KFP)-SOURCE1
+!
+!	     END DO
+!      END DO
+
+!--------------------------------------
+
+
+!----------FEED for DIPOLE----------
+      V=SIN(2*PI*FREQIMP*T)**6
+!      WRITE(*,*) SIN(2*PI*FREQIMP*T)**6
+       STT=1.0/(2.0*FREQIMP)
+	  
+      IF(T.LE.STT)THEN
+         VS=V
+      ELSE
+         VS=0.0
+      END IF
+
+       DO J=JFEED-10,JFEED+10
+!
+        EX1(IFEED,J,kst-3)=VS/DX        !DIPOLE_X
+        EX2(IFEED,J,kst-3)=VS/DX        !DIPOLE_X
+!
+       END DO
+
+
+!-----------------------FEED_V-----------------------------
+!        EZ1(IFEED,JFEED,OBSZ)=VS/DZ            !DIPOLE_Z
+!        EZ2(IFEED,JFEED,OBSZ)=VS/DZ            !DIPOLE_Z
+!        EX1(IFEED,JFEED,kst-3)=VS/DX        !DIPOLE_X
+!        EX2(IFEED,JFEED,kst-3)=VS/DX        !DIPOLE_X
+!        EY1(IFEED,JFEED,kst-3)=VS/DY            !DIPOLE_Y
+!        EY2(IFEED,JFEED,kst-3)=VS/DY            !DIPOLE_Y
+		
+!       CVD1(N)=CMPLX(EZ1(IFEED,JFEED,kst-3)*DZ)  !DIPOLE_Z
+!       CVD2(N)=CMPLX(EZ2(IFEED,JFEED,kst-3)*DZ)  !DIPOLE_Z
+       CVD1(N)=CMPLX(EX1(IFEED,JFEED,kst-3)*DX)  !DIPOLE_X
+       CVD2(N)=CMPLX(EX2(IFEED,JFEED,kst-3)*DX)  !DIPOLE_X
+!       CVD1(N)=CMPLX(EY1(IFEED,JFEED,kst-3)*DY)  !DIPOLE_Y
+!       CVD2(N)=CMPLX(EY2(IFEED,JFEED,kst-3)*DY)  !DIPOLE_Y
+!----------------------------------------------------------
+
+!!*********************
+!!    FOR EDATA
+!!*********************
+!
+!       DO J=2,NY
+!        DO I=1,NX1
+!
+!	       CV1(I,J)=EY1(I,J,KOBS1)&
+!!        	           *EXP(CJ*Bx*DX*real(I))&
+!                      *EXP(CJ*B0*sin(theta)*cos(fai)*real(I)*DX)&
+!        	           *EXP(CJ*B0*DY*real(J)*sin(theta)*sin(fai))
+!
+!	 	   CV2(I,J)=EY2(I,J,KOBS1)&
+!!         	           *EXP(CJ*Bx*DX*real(I))&
+!                      *EXP(CJ*B0*sin(theta)*cos(fai)*real(I)*DX)&
+!        	           *EXP(CJ*B0*DY*real(J)*sin(theta)*sin(fai))
+!!	 	   CV2(I,J)=EY1(I,J,KST2)&
+!!        	           *EXP(CJ*Bx*DX*real(I))&
+!!                      *EXP(CJ*B0*sin(theta)*cos(fai)*real(I)*DX)&
+!!        	           *EXP(CJ*B0*DY*real(J)*sin(theta)*sin(fai))
+!
+!!        CV3(I,J)=EY1(I,J,KOBS2)&
+!!!        	           *EXP(CJ*Bx*DX*real(I))&
+!!                      *EXP(CJ*B0*sin(theta)*cos(fai)*real(I)*DX)&
+!!        	           *EXP(CJ*B0*DY*real(J)*sin(theta)*sin(fai))
+!!
+!!        CV4(I,J)=EY2(I,J,KOBS2)&
+!!!         	           *EXP(CJ*Bx*DX*real(I))&
+!!                      *EXP(CJ*B0*sin(theta)*cos(fai)*real(I)*DX)&
+!!        	           *EXP(CJ*B0*DY*real(J)*sin(theta)*sin(fai))
+!!	 	   CV2(I,J)=EY1(I,J,KST2)&
+!!        	           *EXP(CJ*Bx*DX*real(I))&
+!!                      *EXP(CJ*B0*sin(theta)*cos(fai)*real(I)*DX)&
+!!        	           *EXP(CJ*B0*DY*real(J)*sin(theta)*sin(fai))
+!
+!
+!	      CVA(N)=CVA(N)+CV1(I,J)
+!
+!	      CVB(N)=CVB(N)+CV2(I,J)
+!
+!!            CVC(N)=CVC(N)+CV3(I,J)
+!
+!!	      CVD(N)=CVD(N)+CV4(I,J)
+!
+!
+!
+!        END DO
+!      END DO
+!!	      CVC(N)=(CVB(N)-CVA(N))*EXP(CJ*2*B0*(KST2-KOBS1)*DZ)
+!
+      ET(N+1)=REAL(N)*DT
+!
+      RETURN
+      END
+!
+!****************************************************************************
+      SUBROUTINE HFIELD
+!****************************************************************************
+!
+      INCLUDE'fdtdcom.f90'
+!
+!*********************
+!    FOR HX
+!*********************
+!
+      DO K=LPML,NZ-LPML-1
+        DO J=LPML+1,NY-LPML-1
+          DO I=2,NX
+              HX1(I,J,K)=HX1(I,J,K)&
+                       -HCRLY*(EZ1(I,J+1,K)-EZ1(I,J,K))&
+                       +HCRLZ*(EY1(I,J,K+1)-EY1(I,J,K))
+
+              HX2(I,J,K)=HX2(I,J,K)&
+                       -HCRLY*(EZ2(I,J+1,K)-EZ2(I,J,K))&
+                       +HCRLZ*(EY2(I,J,K+1)-EY2(I,J,K))
+
+
+          END DO
+        END DO
+      END DO
+!
+!*********************
+!    FOR HY
+!*********************
+!
+      DO K=LPML,NZ-LPML-1
+        DO I=LPML+1,NX-LPML-1
+          DO J=2,NY
+              HY1(I,J,K)=HY1(I,J,K)&
+                       -HCRLZ*(EX1(I,J,K+1)-EX1(I,J,K))&
+                       +HCRLX*(EZ1(I+1,J,K)-EZ1(I,J,K))
+
+              HY2(I,J,K)=HY2(I,J,K)&
+                       -HCRLZ*(EX2(I,J,K+1)-EX2(I,J,K))&
+                       +HCRLX*(EZ2(I+1,J,K)-EZ2(I,J,K))
+
+
+          END DO
+        END DO
+      END DO
+!
+!*********************
+!    FOR HZ
+!*********************
+!
+      DO K=2,NZ
+          DO J=LPML+1,NY-LPML-1
+             DO I=LPML+1,NX-LPML-1
+               HZ1(I,J,K)=HZ1(I,J,K)&
+                       -HCRLX*(EY1(I+1,J,K)-EY1(I,J,K))&
+                       +HCRLY*(EX1(I,J+1,K)-EX1(I,J,K))
+
+               HZ2(I,J,K)=HZ2(I,J,K)&
+                       -HCRLX*(EY2(I+1,J,K)-EY2(I,J,K))&
+                       +HCRLY*(EX2(I,J+1,K)-EX2(I,J,K))
+
+
+            END DO
+         END DO
+      END DO
+!
+     DHY1=0.0
+     DHY2=0.0
+     DHZ1=0.0
+     DHZ2=0.0
+!
+       DO J=JFEED-10,JFEED+10
+!
+        DH11=-((HY1(IFEED,J,kst-3-1)-HY1(IFEED,J,kst-3))*DY)
+        DH12=-((HY2(IFEED,J,kst-3-1)-HY2(IFEED,J,kst-3))*DY)
+        DHY1=DHY1+DH11
+        DHY2=DHY2+DH12
+!
+       END DO
+!
+!!       DO J=JFEED-11,JFEED+10
+!
+        DH21=-((HZ1(IFEED,JFEED+10,kst-3)-HZ1(IFEED,JFEED-11,kst-3))*DZ)
+        DH22=-((HZ2(IFEED,JFEED+10,kst-3)-HZ2(IFEED,JFEED-11,kst-3))*DZ)
+        DHZ1=DH21
+        DHZ2=DH22
+
+!       END DO
+
+
+
+!-------------------------------FEED_I-------------------------------------------	   
+!      DI11=-((HX1(IFEED,JFEED-1,kst-3)-HX1(IFEED,JFEED,kst-3))*DX  !Z_DIRECTION
+!     &    +(HY1(IFEED,JFEED,kst-3)-HY1(IFEED-1,JFEED,kst-3))*DY)    
+!      DI12=-((HX2(IFEED,JFEED-1,kst-3)-HX2(IFEED,JFEED,kst-3))*DX  !Z_DIRECTION
+!     &    +(HY2(IFEED,JFEED,kst-3)-HY2(IFEED-1,JFEED,kst-3))*DY)
+	 
+!      DI11=-((HY1(IFEED,JFEED,kst-3-1)-HY1(IFEED,JFEED,kst-3))*DY & !X_DIRECTION
+!          +(HZ1(IFEED,JFEED,kst-3)-HZ1(IFEED,JFEED-1,kst-3))*DZ)
+!      DI12=-((HY2(IFEED,JFEED,kst-3-1)-HY2(IFEED,JFEED,kst-3))*DY & !X_DIRECTION
+!          +(HZ2(IFEED,JFEED,kst-3)-HZ2(IFEED,JFEED-1,kst-3))*DZ)
+	 
+!      DI11=(HX1(IFEED,JFEED,kst-3)-HX1(IFEED,JFEED,kst-3-1))*DX & !Y_DIRECTION
+!          -(HZ1(IFEED,JFEED,kst-3)-HZ1(IFEED-1,JFEED,kst-3))*DZ
+!      DI12=(HX2(IFEED,JFEED,kst-3)-HX2(IFEED,JFEED,kst-3-1))*DX &!Y_DIRECTION
+!          -(HZ2(IFEED,JFEED,kst-3)-HZ2(IFEED-1,JFEED,kst-3))*DZ
+!---------------------------------------------------------------------------------
+!
+      DI11=DHY1+DHZ1
+      DI12=DHY2+DHZ2
+
+      DI1=0.5*(DI11+DI01)
+      DI2=0.5*(DI12+DI02)
+!
+      CI1(N)=CMPLX(DI1,0.0)
+      CI2(N)=CMPLX(DI2,0.0)
+!
+      DI01=DI11
+      DI02=DI12
+
+      RETURN
+      END
+!
+
+!--------------------------------------------------------------------
+      SUBROUTINE PBCXE
+!--------------------------------------------------------------------
+      INCLUDE'fdtdcom.f90'
+
+       DO K=2,NZ
+        DO J=1,NY1
+          EY1(NX,J,K)=EY1(2,J,K)*EXP((-CJ)*BTX)
+          EY2(NX,J,K)=EY2(2,J,K)*EXP((-CJ)*BTX)
+         END DO
+       END DO
+
+       DO K=1,NZ1
+        DO J=2,NY
+          EZ1(NX,J,K)=EZ1(2,J,K)*EXP((-CJ)*BTX)
+          EZ2(NX,J,K)=EZ2(2,J,K)*EXP((-CJ)*BTX)
+         END DO
+       END DO
+
+
+      RETURN
+      END
+
+
+!--------------------------------------------------------------------
+      SUBROUTINE PBCXH
+!--------------------------------------------------------------------
+      INCLUDE'fdtdcom.f90'
+
+       DO K=1,NZ1
+        DO J=2,NY
+          HY1(1,J,K)=HY1(NX1,J,K)*EXP(CJ*BTX)
+          HY2(1,J,K)=HY2(NX1,J,K)*EXP(CJ*BTX)
+        END DO
+       END DO
+
+       DO K=2,NZ
+        DO J=1,NY1
+          HZ1(1,J,K)=HZ1(NX1,J,K)*EXP(CJ*BTX)
+          HZ2(1,J,K)=HZ2(NX1,J,K)*EXP(CJ*BTX)
+        END DO
+       END DO
+
+      RETURN
+      END
+
+!--------------------------------------------------------------------
+      SUBROUTINE PBCYE
+!--------------------------------------------------------------------
+      INCLUDE'fdtdcom.f90'
+
+
+       DO K=2,NZ
+        DO I=1,NX1
+          EX1(I,NY,K)=EX1(I,2,K)*EXP((-CJ)*BTY)
+          EX2(I,NY,K)=EX2(I,2,K)*EXP((-CJ)*BTY)
+        END DO
+       END DO
+
+       DO K=1,NZ1
+        DO I=2,NX
+          EZ1(I,NY,K)=EZ1(I,2,K)*EXP((-CJ)*BTY)
+          EZ2(I,NY,K)=EZ2(I,2,K)*EXP((-CJ)*BTY)
+        END DO
+       END DO
+
+      RETURN
+      END
+
+!--------------------------------------------------------------------
+      SUBROUTINE PBCYH
+!--------------------------------------------------------------------
+      INCLUDE'fdtdcom.f90'
+
+
+       DO K=1,NZ1
+        DO I=2,NX
+          HX1(I,1,K)=HX1(I,NY1,K)*EXP(CJ*BTY)
+          HX2(I,1,K)=HX2(I,NY1,K)*EXP(CJ*BTY)
+        END DO
+       END DO
+
+       DO K=2,NZ
+        DO I=1,NX1
+          HZ1(I,1,K)=HZ1(I,NY1,K)*EXP(CJ*BTY)
+          HZ2(I,1,K)=HZ2(I,NY1,K)*EXP(CJ*BTY)
+        END DO
+       END DO
+
+      RETURN
+      END
+
+!
+!------------------------------------
+      SUBROUTINE SETPML
+!------------------------------------
+!
+      INCLUDE'fdtdcom.f90'
+!
+      SIGXMAX=-(LOG(R)*(MM+1)*YUU0*FC)/(2*LPML*DX)
+      SIGYMAX=-(LOG(R)*(MM+1)*YUU0*FC)/(2*LPML*DY)
+      SIGZMAX=-(LOG(R)*(MM+1)*YUU0*FC)/(2*LPML*DZ)
+!***************************
+!*** FOR EX (EXCEPT PML) ***
+!***************************
+!
+      DO J=1,NY
+         PEXY01(J)=YUU0/(YUU0+SIGMA0*DT)
+         PEXY02(J)=DT/((YUU0+SIGMA0*DT)*DY)
+      END DO
+!
+      DO K=1,NZ
+         PEXZ01(K)=YUU0/(YUU0+SIGMA0*DT)
+         PEXZ02(K)=DT/((YUU0+SIGMA0*DT)*DZ)
+      END DO
+!
+!****************
+!*** FOR EXY  ***
+!****************
+!
+      DO J=1,LPML
+         SIGY=SIGYMAX*(REAL(LPML-J+1)/REAL(LPML))**MM
+         PEXY01(J)=YUU0/(YUU0+SIGY*DT)
+         PEXY02(J)=DT/((YUU0+SIGY*DT)*DY)
+         PEXY01(NY-J+1)=PEXY01(J)
+         PEXY02(NY-J+1)=PEXY02(J)
+      END DO
+!
+!****************
+!*** FOR EXZ  ***
+!****************
+!
+      DO K=1,LPML
+         SIGZ=SIGZMAX*(REAL(LPML-K+1)/REAL(LPML))**MM
+         PEXZ01(K)=YUU0/(YUU0+SIGZ*DT)
+         PEXZ02(K)=DT/((YUU0+SIGZ*DT)*DZ)
+         PEXZ01(NZ-K+1)=PEXZ01(K)
+         PEXZ02(NZ-K+1)=PEXZ02(K)
+      END DO
+!
+!***************************
+!*** FOR EY (EXCEPT PML) ***
+!***************************
+!
+      DO I=1,NX
+         PEYX01(I)=YUU0/(YUU0+SIGMA0*DT)
+         PEYX02(I)=DT/((YUU0+SIGMA0*DT)*DX)
+      END DO
+!
+      DO K=1,NZ
+         PEYZ01(K)=YUU0/(YUU0+SIGMA0*DT)
+         PEYZ02(K)=DT/((YUU0+SIGMA0*DT)*DZ)
+      END DO
+!
+!****************
+!*** FOR EYX  ***
+!****************
+!
+      DO I=1,LPML
+         SIGX=SIGXMAX*(REAL(LPML-I+1)/REAL(LPML))**MM
+         PEYX01(I)=YUU0/(YUU0+SIGX*DT)
+         PEYX02(I)=DT/((YUU0+SIGX*DT)*DX)
+         PEYX01(NX-I+1)=PEYX01(I)
+         PEYX02(NX-I+1)=PEYX02(I)
+      END DO
+!
+!****************
+!*** FOR EYZ  ***
+!****************
+!
+      DO K=1,LPML
+         SIGZ=SIGZMAX*(REAL(LPML-K+1)/REAL(LPML))**MM
+         PEYZ01(K)=YUU0/(YUU0+SIGZ*DT)
+         PEYZ02(K)=DT/((YUU0+SIGZ*DT)*DZ)
+         PEYZ01(NZ-K+1)=PEYZ01(K)
+         PEYZ02(NZ-K+1)=PEYZ02(K)
+      END DO
+!
+!***************************
+!*** FOR EZ (EXCEPT PML) ***
+!***************************
+!
+      DO I=1,NX
+         PEZX01(I)=YUU0/(YUU0+SIGMA0*DT)
+         PEZX02(I)=DT/((YUU0+SIGMA0*DT)*DX)
+      END DO
+!
+      DO J=1,NY
+         PEZY01(J)=YUU0/(YUU0+SIGMA0*DT)
+         PEZY02(J)=DT/((YUU0+SIGMA0*DT)*DY)
+      END DO
+!
+!****************
+!*** FOR EZX  ***
+!****************
+!
+      DO I=1,LPML
+         SIGX=SIGXMAX*(REAL(LPML-I+1)/REAL(LPML))**MM
+         PEZX01(I)=YUU0/(YUU0+SIGX*DT)
+         PEZX02(I)=DT/((YUU0+SIGX*DT)*DX)
+         PEZX01(NX-I+1)=PEZX01(I)
+         PEZX02(NX-I+1)=PEZX02(I)
+      END DO
+!
+!****************
+!*** FOR EZY  ***
+!****************
+!
+      DO J=1,LPML
+         SIGY=SIGYMAX*(REAL(LPML-J+1)/REAL(LPML))**MM
+         PEZY01(J)=YUU0/(YUU0+SIGY*DT)
+         PEZY02(J)=DT/((YUU0+SIGY*DT)*DY)
+         PEZY01(NY-J+1)=PEZY01(J)
+         PEZY02(NY-J+1)=PEZY02(J)
+      END DO
+!
+!*****************************************************
+!
+!***************************
+!*** FOR HX (EXCEPT PML) ***
+!***************************
+!
+      DO J=1,NY
+         PHXY01(J)=UMU/(UMU+SIGMA0*DT)
+         PHXY02(J)=DT/((UMU+SIGMA0*DT)*DY)
+      END DO
+!
+      DO K=1,NZ
+         PHXZ01(K)=UMU/(UMU+SIGMA0*DT)
+         PHXZ02(K)=DT/((UMU+SIGMA0*DT)*DZ)
+      END DO
+!
+!****************
+!*** FOR HXY  ***
+!****************
+!
+      DO J=1,LPML
+         SIGY=SIGYMAX*(REAL(LPML-J+0.5)/REAL(LPML))**MM
+         SIGYS=UMU*SIGY/YUU0
+         PHXY01(J)=UMU/(UMU+SIGYS*DT)
+         PHXY02(J)=DT/((UMU+SIGYS*DT)*DY)
+         PHXY01(NY-J)=PHXY01(J)
+         PHXY02(NY-J)=PHXY02(J)
+      END DO
+!
+!****************
+!*** FOR HXZ  ***
+!****************
+!
+      DO K=1,LPML
+         SIGZ=SIGZMAX*(REAL(LPML-K+0.5)/REAL(LPML))**MM
+         SIGZS=UMU*SIGZ/YUU0
+         PHXZ01(K)=UMU/(UMU+SIGZS*DT)
+         PHXZ02(K)=DT/((UMU+SIGZS*DT)*DZ)
+         PHXZ01(NZ-K)=PHXZ01(K)
+         PHXZ02(NZ-K)=PHXZ02(K)
+      END DO
+!
+!***************************
+!*** FOR HY (EXCEPT PML) ***
+!***************************
+!
+      DO I=1,NX
+         PHYX01(I)=UMU/(UMU+SIGMA0*DT)
+         PHYX02(I)=DT/((UMU+SIGMA0*DT)*DX)
+      END DO
+!
+      DO K=1,NZ
+         PHYZ01(K)=UMU/(UMU+SIGMA0*DT)
+         PHYZ02(K)=DT/((UMU+SIGMA0*DT)*DZ)
+      END DO
+!
+!****************
+!*** FOR HYX  ***
+!****************
+!
+      DO I=1,LPML
+         SIGX=SIGXMAX*(REAL(LPML-I+0.5)/REAL(LPML))**MM
+         SIGXS=UMU*SIGX/YUU0
+         PHYX01(I)=UMU/(UMU+SIGXS*DT)
+         PHYX02(I)=DT/((UMU+SIGXS*DT)*DX)
+         PHYX01(NX-I)=PHYX01(I)
+         PHYX02(NX-I)=PHYX02(I)
+      END DO
+!
+!****************
+!*** FOR HYZ  ***
+!****************
+!
+      DO K=1,LPML
+         SIGZ=SIGZMAX*(REAL(LPML-K+0.5)/REAL(LPML))**MM
+         SIGZS=UMU*SIGZ/YUU0
+         PHYZ01(K)=UMU/(UMU+SIGZS*DT)
+         PHYZ02(K)=DT/((UMU+SIGZS*DT)*DZ)
+         PHYZ01(NZ-K)=PHYZ01(K)
+         PHYZ02(NZ-K)=PHYZ02(K)
+      END DO
+!
+!***************************
+!*** FOR HZ (EXCEPT PML) ***
+!***************************
+!
+      DO I=1,NX
+         PHZX01(I)=UMU/(UMU+SIGMA0*DT)
+         PHZX02(I)=DT/((UMU+SIGMA0*DT)*DX)
+      END DO
+!
+      DO J=1,NY
+         PHZY01(J)=UMU/(UMU+SIGMA0*DT)
+         PHZY02(J)=DT/((UMU+SIGMA0*DT)*DY)
+      END DO
+!
+!****************
+!*** FOR HZX  ***
+!****************
+!
+      DO I=1,LPML
+         SIGX=SIGXMAX*(REAL(LPML-I+0.5)/REAL(LPML))**MM
+         SIGXS=UMU*SIGX/YUU0
+         PHZX01(I)=UMU/(UMU+SIGXS*DT)
+         PHZX02(I)=DT/((UMU+SIGXS*DT)*DX)
+         PHZX01(NX-I)=PHZX01(I)
+         PHZX02(NX-I)=PHZX02(I)
+      END DO
+!
+!****************
+!*** FOR HZY  ***
+!****************
+!
+      DO J=1,LPML
+         SIGY=SIGYMAX*(REAL(LPML-J+0.5)/REAL(LPML))**MM
+         SIGYS=UMU*SIGY/YUU0
+         PHZY01(J)=UMU/(UMU+SIGYS*DT)
+         PHZY02(J)=DT/((UMU+SIGYS*DT)*DY)
+         PHZY01(NY-J)=PHZY01(J)
+         PHZY02(NY-J)=PHZY02(J)
+      END DO
+!
+      RETURN
+      END
+!
+!***************************************************************************
+       SUBROUTINE EPML
+!***************************************************************************
+!
+      INCLUDE'fdtdcom.f90'
+!
+!******************
+!*** J (FOR EX) ***
+!******************
+!
+      DO I=1,NX-1
+         DO J=2,LPML
+            DO K=2,NZ-1
+               EXYY01(I,J,K)=PEXY01(J)*EXYY01(I,J,K)&
+                          +PEXY02(J)*(HZ1(I,J,K)-HZ1(I,J-1,K))
+!
+               EXZY01(I,J,K)=PEXZ01(K)*EXZY01(I,J,K)&
+                          -PEXZ02(K)*(HY1(I,J,K)-HY1(I,J,K-1))
+!
+               EXYY11(I,NY-J+1,K)=PEXY01(NY-J+1)*EXYY11(I,NY-J+1,K)&
+                   +PEXY02(NY-J+1)*(HZ1(I,NY-J+1,K)-HZ1(I,NY-J,K))
+!
+               EXZY11(I,NY-J+1,K)=PEXZ01(NZ-K+1)*EXZY11(I,NY-J+1,K)&
+                   -PEXZ02(NZ-K+1)*(HY1(I,NY-J+1,K)-HY1(I,NY-J+1,K-1))
+!
+               EX1(I,J,K)=EXYY01(I,J,K)+EXZY01(I,J,K)
+               EX1(I,NY-J+1,K)=EXYY11(I,NY-J+1,K)+EXZY11(I,NY-J+1,K)
+            END DO
+         END DO
+      END DO
+
+      DO I=1,NX-1
+         DO J=2,LPML
+            DO K=2,NZ-1
+               EXYY02(I,J,K)=PEXY01(J)*EXYY02(I,J,K)&
+                          +PEXY02(J)*(HZ2(I,J,K)-HZ2(I,J-1,K))
+!
+               EXZY02(I,J,K)=PEXZ01(K)*EXZY02(I,J,K)&
+                          -PEXZ02(K)*(HY2(I,J,K)-HY2(I,J,K-1))
+!
+               EXYY12(I,NY-J+1,K)=PEXY01(NY-J+1)*EXYY12(I,NY-J+1,K)&
+                   +PEXY02(NY-J+1)*(HZ2(I,NY-J+1,K)-HZ2(I,NY-J,K))
+!
+               EXZY12(I,NY-J+1,K)=PEXZ01(NZ-K+1)*EXZY12(I,NY-J+1,K)&
+                   -PEXZ02(NZ-K+1)*(HY2(I,NY-J+1,K)-HY2(I,NY-J+1,K-1))
+!
+               EX2(I,J,K)=EXYY02(I,J,K)+EXZY02(I,J,K)
+               EX2(I,NY-J+1,K)=EXYY12(I,NY-J+1,K)+EXZY12(I,NY-J+1,K)
+            END DO
+         END DO
+      END DO
+!
+!******************
+!*** K (FOR EX) ***
+!******************
+!
+      DO I=1,NX-1
+         DO K=2,LPML
+            DO J=LPML+1,NY-LPML
+               EXYZ01(I,J,K)=PEXY01(J)*EXYZ01(I,J,K)&
+                          +PEXY02(J)*(HZ1(I,J,K)-HZ1(I,J-1,K))
+!
+               EXZZ01(I,J,K)=PEXZ01(K)*EXZZ01(I,J,K)&
+                          -PEXZ02(K)*(HY1(I,J,K)-HY1(I,J,K-1))
+!
+               EXYZ11(I,J,NZ-K+1)=PEXY01(NY-J+1)*EXYZ11(I,J,NZ-K+1)&
+                   +PEXY02(NY-J+1)*(HZ1(I,J,NZ-K+1)-HZ1(I,J-1,NZ-K+1))
+!
+               EXZZ11(I,J,NZ-K+1)=PEXZ01(NZ-K+1)*EXZZ11(I,J,NZ-K+1)&
+                   -PEXZ02(NZ-K+1)*(HY1(I,J,NZ-K+1)-HY1(I,J,NZ-K))
+!
+               EX1(I,J,K)=EXYZ01(I,J,K)+EXZZ01(I,J,K)
+               EX1(I,J,NZ-K+1)=EXYZ11(I,J,NZ-K+1)+EXZZ11(I,J,NZ-K+1)
+            END DO
+         END DO
+      END DO
+
+      DO I=1,NX-1
+         DO K=2,LPML
+            DO J=LPML+1,NY-LPML
+               EXYZ02(I,J,K)=PEXY01(J)*EXYZ02(I,J,K)&
+                          +PEXY02(J)*(HZ2(I,J,K)-HZ2(I,J-1,K))
+!
+               EXZZ02(I,J,K)=PEXZ01(K)*EXZZ02(I,J,K)&
+                          -PEXZ02(K)*(HY2(I,J,K)-HY2(I,J,K-1))
+!
+               EXYZ12(I,J,NZ-K+1)=PEXY01(NY-J+1)*EXYZ12(I,J,NZ-K+1)&
+                   +PEXY02(NY-J+1)*(HZ2(I,J,NZ-K+1)-HZ2(I,J-1,NZ-K+1))
+!
+               EXZZ12(I,J,NZ-K+1)=PEXZ01(NZ-K+1)*EXZZ12(I,J,NZ-K+1)&
+                   -PEXZ02(NZ-K+1)*(HY2(I,J,NZ-K+1)-HY2(I,J,NZ-K))
+!
+               EX2(I,J,K)=EXYZ02(I,J,K)+EXZZ02(I,J,K)
+               EX2(I,J,NZ-K+1)=EXYZ12(I,J,NZ-K+1)+EXZZ12(I,J,NZ-K+1)
+            END DO
+         END DO
+      END DO
+!
+!******************
+!*** I (FOR EY) ***
+!******************
+!
+      DO J=1,NY-1
+         DO I=2,LPML
+            DO K=2,NZ-1
+               EYXX01(I,J,K)=PEYX01(I)*EYXX01(I,J,K)&
+                          -PEYX02(I)*(HZ1(I,J,K)-HZ1(I-1,J,K))
+!
+               EYZX01(I,J,K)=PEYZ01(K)*EYZX01(I,J,K)&
+                          +PEYZ02(K)*(HX1(I,J,K)-HX1(I,J,K-1))
+!
+               EYXX11(NX-I+1,J,K)=PEYX01(NX-I+1)*EYXX11(NX-I+1,J,K)&
+                   -PEYX02(NX-I+1)*(HZ1(NX-I+1,J,K)-HZ1(NX-I,J,K))
+!
+               EYZX11(NX-I+1,J,K)=PEYZ01(NZ-K+1)*EYZX11(NX-I+1,J,K)&
+                   +PEYZ02(NZ-K+1)*(HX1(NX-I+1,J,K)-HX1(NX-I+1,J,K-1))
+!
+               EY1(I,J,K)=EYXX01(I,J,K)+EYZX01(I,J,K)
+               EY1(NX-I+1,J,K)=EYXX11(NX-I+1,J,K)+EYZX11(NX-I+1,J,K)
+            END DO
+         END DO
+      END DO
+
+      DO J=1,NY-1
+         DO I=2,LPML
+            DO K=2,NZ-1
+               EYXX02(I,J,K)=PEYX01(I)*EYXX02(I,J,K)&
+                          -PEYX02(I)*(HZ2(I,J,K)-HZ2(I-1,J,K))
+!
+               EYZX02(I,J,K)=PEYZ01(K)*EYZX02(I,J,K)&
+                          +PEYZ02(K)*(HX2(I,J,K)-HX2(I,J,K-1))
+!
+               EYXX12(NX-I+1,J,K)=PEYX01(NX-I+1)*EYXX12(NX-I+1,J,K)&
+                   -PEYX02(NX-I+1)*(HZ2(NX-I+1,J,K)-HZ2(NX-I,J,K))
+!
+               EYZX12(NX-I+1,J,K)=PEYZ01(NZ-K+1)*EYZX12(NX-I+1,J,K)&
+                   +PEYZ02(NZ-K+1)*(HX2(NX-I+1,J,K)-HX2(NX-I+1,J,K-1))
+!
+               EY2(I,J,K)=EYXX02(I,J,K)+EYZX02(I,J,K)
+               EY2(NX-I+1,J,K)=EYXX12(NX-I+1,J,K)+EYZX12(NX-I+1,J,K)
+            END DO
+         END DO
+      END DO
+!
+!******************
+!*** K (FOR EY) ***
+!******************
+!
+      DO J=1,NY-1
+         DO K=2,LPML
+            DO I=LPML+1,NX-LPML
+               EYXZ01(I,J,K)=PEYX01(I)*EYXZ01(I,J,K)&
+                          -PEYX02(I)*(HZ1(I,J,K)-HZ1(I-1,J,K))
+!
+               EYZZ01(I,J,K)=PEYZ01(K)*EYZZ01(I,J,K)&
+                          +PEYZ02(K)*(HX1(I,J,K)-HX1(I,J,K-1))
+!
+               EYXZ11(I,J,NZ-K+1)=PEYX01(NX-I+1)*EYXZ11(I,J,NZ-K+1)&
+                   -PEYX02(NX-I+1)*(HZ1(I,J,NZ-K+1)-HZ1(I-1,J,NZ-K+1))
+!
+               EYZZ11(I,J,NZ-K+1)=PEYZ01(NZ-K+1)*EYZZ11(I,J,NZ-K+1)&
+                   +PEYZ02(NZ-K+1)*(HX1(I,J,NZ-K+1)-HX1(I,J,NZ-K))
+!
+               EY1(I,J,K)=EYXZ01(I,J,K)+EYZZ01(I,J,K)
+               EY1(I,J,NZ-K+1)=EYXZ11(I,J,NZ-K+1)+EYZZ11(I,J,NZ-K+1)
+            END DO
+         END DO
+      END DO
+
+      DO J=1,NY-1
+         DO K=2,LPML
+            DO I=LPML+1,NX-LPML
+               EYXZ02(I,J,K)=PEYX01(I)*EYXZ02(I,J,K)&
+                          -PEYX02(I)*(HZ2(I,J,K)-HZ2(I-1,J,K))
+!
+               EYZZ02(I,J,K)=PEYZ01(K)*EYZZ02(I,J,K)&
+                          +PEYZ02(K)*(HX2(I,J,K)-HX2(I,J,K-1))
+!
+               EYXZ12(I,J,NZ-K+1)=PEYX01(NX-I+1)*EYXZ12(I,J,NZ-K+1)&
+                   -PEYX02(NX-I+1)*(HZ2(I,J,NZ-K+1)-HZ2(I-1,J,NZ-K+1))
+!
+               EYZZ12(I,J,NZ-K+1)=PEYZ01(NZ-K+1)*EYZZ12(I,J,NZ-K+1)&
+                   +PEYZ02(NZ-K+1)*(HX2(I,J,NZ-K+1)-HX2(I,J,NZ-K))
+!
+               EY2(I,J,K)=EYXZ02(I,J,K)+EYZZ02(I,J,K)
+               EY2(I,J,NZ-K+1)=EYXZ12(I,J,NZ-K+1)+EYZZ12(I,J,NZ-K+1)
+            END DO
+         END DO
+      END DO
+!
+!******************
+!*** I (FOR EZ) ***
+!******************
+!
+      DO K=1,NZ-1
+         DO I=2,LPML
+            DO J=2,NY-1
+               EZXX01(I,J,K)=PEZX01(I)*EZXX01(I,J,K)&
+                          +PEZX02(I)*(HY1(I,J,K)-HY1(I-1,J,K))
+!
+               EZYX01(I,J,K)=PEZY01(J)*EZYX01(I,J,K)&
+                          -PEZY02(J)*(HX1(I,J,K)-HX1(I,J-1,K))
+!
+               EZXX11(NX-I+1,J,K)=PEZX01(NX-I+1)*EZXX11(NX-I+1,J,K)&
+                   +PEZX02(NX-I+1)*(HY1(NX-I+1,J,K)-HY1(NX-I,J,K))
+!
+               EZYX11(NX-I+1,J,K)=PEZY01(NY-J+1)*EZYX11(NX-I+1,J,K)&
+                   -PEZY02(NY-J+1)*(HX1(NX-I+1,J,K)-HX1(NX-I+1,J-1,K))
+!
+               EZ1(I,J,K)=EZXX01(I,J,K)+EZYX01(I,J,K)
+               EZ1(NX-I+1,J,K)=EZXX11(NX-I+1,J,K)+EZYX11(NX-I+1,J,K)
+            END DO
+         END DO
+      END DO
+
+      DO K=1,NZ-1
+         DO I=2,LPML
+            DO J=2,NY-1
+               EZXX02(I,J,K)=PEZX01(I)*EZXX02(I,J,K)&
+                          +PEZX02(I)*(HY2(I,J,K)-HY2(I-1,J,K))
+!
+               EZYX02(I,J,K)=PEZY01(J)*EZYX02(I,J,K)&
+                          -PEZY02(J)*(HX2(I,J,K)-HX2(I,J-1,K))
+!
+               EZXX12(NX-I+1,J,K)=PEZX01(NX-I+1)*EZXX12(NX-I+1,J,K)&
+                   +PEZX02(NX-I+1)*(HY2(NX-I+1,J,K)-HY2(NX-I,J,K))
+!
+               EZYX12(NX-I+1,J,K)=PEZY01(NY-J+1)*EZYX12(NX-I+1,J,K)&
+                   -PEZY02(NY-J+1)*(HX2(NX-I+1,J,K)-HX2(NX-I+1,J-1,K))
+!
+               EZ2(I,J,K)=EZXX02(I,J,K)+EZYX02(I,J,K)
+               EZ2(NX-I+1,J,K)=EZXX12(NX-I+1,J,K)+EZYX12(NX-I+1,J,K)
+            END DO
+         END DO
+      END DO
+!
+!******************
+!*** J (FOR EZ) ***
+!******************
+!
+       DO K=1,NZ-1
+          DO J=2,LPML
+             DO I=LPML+1,NX-LPML
+               EZXY01(I,J,K)=PEZX01(I)*EZXY01(I,J,K)&
+                          +PEZX02(I)*(HY1(I,J,K)-HY1(I-1,J,K))
+!
+               EZYY01(I,J,K)=PEZY01(J)*EZYY01(I,J,K)&
+                          -PEZY02(J)*(HX1(I,J,K)-HX1(I,J-1,K))
+!
+               EZXY11(I,NY-J+1,K)=PEZX01(NX-I+1)*EZXY11(I,NY-J+1,K)&
+                   +PEZX02(NX-I+1)*(HY1(I,NY-J+1,K)-HY1(I-1,NY-J+1,K))
+!
+               EZYY11(I,NY-J+1,K)=PEZY01(NY-J+1)*EZYY11(I,NY-J+1,K)&
+                   -PEZY02(NY-J+1)*(HX1(I,NY-J+1,K)-HX1(I,NY-J,K))
+!
+               EZ1(I,J,K)=EZXY01(I,J,K)+EZYY01(I,J,K)
+               EZ1(I,NY-J+1,K)=EZXY11(I,NY-J+1,K)+EZYY11(I,NY-J+1,K)
+            END DO
+         END DO
+      END DO
+
+       DO K=1,NZ-1
+          DO J=2,LPML
+             DO I=LPML+1,NX-LPML
+               EZXY02(I,J,K)=PEZX01(I)*EZXY02(I,J,K)&
+                          +PEZX02(I)*(HY2(I,J,K)-HY2(I-1,J,K))
+!
+               EZYY02(I,J,K)=PEZY01(J)*EZYY02(I,J,K)&
+                          -PEZY02(J)*(HX2(I,J,K)-HX2(I,J-1,K))
+!
+               EZXY12(I,NY-J+1,K)=PEZX01(NX-I+1)*EZXY12(I,NY-J+1,K)&
+                   +PEZX02(NX-I+1)*(HY2(I,NY-J+1,K)-HY2(I-1,NY-J+1,K))
+!
+               EZYY12(I,NY-J+1,K)=PEZY01(NY-J+1)*EZYY12(I,NY-J+1,K)&
+                   -PEZY02(NY-J+1)*(HX2(I,NY-J+1,K)-HX2(I,NY-J,K))
+!
+               EZ2(I,J,K)=EZXY02(I,J,K)+EZYY02(I,J,K)
+               EZ2(I,NY-J+1,K)=EZXY12(I,NY-J+1,K)+EZYY12(I,NY-J+1,K)
+            END DO
+         END DO
+      END DO
+!
+      RETURN
+      END
+!
+!***************************************************************************
+      SUBROUTINE HPML
+!***************************************************************************
+!
+      INCLUDE'fdtdcom.f90'
+!
+!******************
+!*** J (FOR HX) ***
+!******************
+!
+      DO I=2,NX-1
+         DO J=1,LPML
+            DO K=LPML+1,NZ-LPML-1
+               HXYY01(I,J,K)=PHXY01(J)*HXYY01(I,J,K)&
+                        -PHXY02(J)*(EZ1(I,J+1,K)-EZ1(I,J,K))
+!
+               HXZY01(I,J,K)=PHXZ01(K)*HXZY01(I,J,K)&
+                        +PHXZ02(K)*(EY1(I,J,K+1)-EY1(I,J,K))
+!
+               HXYY11(I,NY-J,K)=PHXY01(NY-J)*HXYY11(I,NY-J,K)&
+                        -PHXY02(NY-J)*(EZ1(I,NY-J+1,K)-EZ1(I,NY-J,K))
+!
+               HXZY11(I,NY-J,K)=PHXZ01(NZ-K)*HXZY11(I,NY-J,K)&
+                        +PHXZ02(NZ-K)*(EY1(I,NY-J,K+1)-EY1(I,NY-J,K))
+!
+               HX1(I,J,K)=HXYY01(I,J,K)+HXZY01(I,J,K)
+               HX1(I,NY-J,K)=HXYY11(I,NY-J,K)+HXZY11(I,NY-J,K)
+            END DO
+         END DO
+      END DO
+
+      DO I=2,NX-1
+         DO J=1,LPML
+            DO K=LPML+1,NZ-LPML-1
+               HXYY02(I,J,K)=PHXY01(J)*HXYY02(I,J,K)&
+                        -PHXY02(J)*(EZ2(I,J+1,K)-EZ2(I,J,K))
+!
+               HXZY02(I,J,K)=PHXZ01(K)*HXZY02(I,J,K)&
+                        +PHXZ02(K)*(EY2(I,J,K+1)-EY2(I,J,K))
+!
+               HXYY12(I,NY-J,K)=PHXY01(NY-J)*HXYY12(I,NY-J,K)&
+                        -PHXY02(NY-J)*(EZ2(I,NY-J+1,K)-EZ2(I,NY-J,K))
+!
+               HXZY12(I,NY-J,K)=PHXZ01(NZ-K)*HXZY12(I,NY-J,K)&
+                        +PHXZ02(NZ-K)*(EY2(I,NY-J,K+1)-EY2(I,NY-J,K))
+!
+               HX2(I,J,K)=HXYY02(I,J,K)+HXZY02(I,J,K)
+               HX2(I,NY-J,K)=HXYY12(I,NY-J,K)+HXZY12(I,NY-J,K)
+            END DO
+         END DO
+      END DO
+!
+!******************
+!*** K (FOR HX) ***
+!******************
+!
+      DO I=2,NX-1
+         DO K=1,LPML
+            DO J=1,NY-1
+               HXYZ01(I,J,K)=PHXY01(J)*HXYZ01(I,J,K)&
+                        -PHXY02(J)*(EZ1(I,J+1,K)-EZ1(I,J,K))
+!
+               HXZZ01(I,J,K)=PHXZ01(K)*HXZZ01(I,J,K)&
+                        +PHXZ02(K)*(EY1(I,J,K+1)-EY1(I,J,K))
+!
+               HXYZ11(I,J,NZ-K)=PHXY01(NY-J)*HXYZ11(I,J,NZ-K)&
+                        -PHXY02(NY-J)*(EZ1(I,J+1,NZ-K)-EZ1(I,J,NZ-K))
+!
+               HXZZ11(I,J,NZ-K)=PHXZ01(NZ-K)*HXZZ11(I,J,NZ-K)&
+                        +PHXZ02(NZ-K)*(EY1(I,J,NZ-K+1)-EY1(I,J,NZ-K))
+!
+               HX1(I,J,K)=HXYZ01(I,J,K)+HXZZ01(I,J,K)
+               HX1(I,J,NZ-K)=HXYZ11(I,J,NZ-K)+HXZZ11(I,J,NZ-K)
+            END DO
+         END DO
+      END DO
+
+      DO I=2,NX-1
+         DO K=1,LPML
+            DO J=1,NY-1
+               HXYZ02(I,J,K)=PHXY01(J)*HXYZ02(I,J,K)&
+                        -PHXY02(J)*(EZ2(I,J+1,K)-EZ2(I,J,K))
+!
+               HXZZ02(I,J,K)=PHXZ01(K)*HXZZ02(I,J,K)&
+                        +PHXZ02(K)*(EY2(I,J,K+1)-EY2(I,J,K))
+!
+               HXYZ12(I,J,NZ-K)=PHXY01(NY-J)*HXYZ12(I,J,NZ-K)&
+                        -PHXY02(NY-J)*(EZ2(I,J+1,NZ-K)-EZ2(I,J,NZ-K))
+!
+               HXZZ12(I,J,NZ-K)=PHXZ01(NZ-K)*HXZZ12(I,J,NZ-K)&
+                        +PHXZ02(NZ-K)*(EY2(I,J,NZ-K+1)-EY2(I,J,NZ-K))
+!
+               HX2(I,J,K)=HXYZ02(I,J,K)+HXZZ02(I,J,K)
+               HX2(I,J,NZ-K)=HXYZ12(I,J,NZ-K)+HXZZ12(I,J,NZ-K)
+            END DO
+         END DO
+      END DO
+!
+!******************
+!*** I (FOR HY) ***
+!******************
+!
+      DO J=2,NY-1
+         DO I=1,LPML
+            DO K=LPML+1,NZ-LPML-1
+               HYXX01(I,J,K)=PHYX01(I)*HYXX01(I,J,K)&
+                        +PHYX02(I)*(EZ1(I+1,J,K)-EZ1(I,J,K))
+!
+               HYZX01(I,J,K)=PHYZ01(K)*HYZX01(I,J,K)&
+                        -PHYZ02(K)*(EX1(I,J,K+1)-EX1(I,J,K))
+!
+               HYXX11(NX-I,J,K)=PHYX01(NX-I)*HYXX11(NX-I,J,K)&
+                        +PHYX02(NX-I)*(EZ1(NX-I+1,J,K)-EZ1(NX-I,J,K))
+!
+               HYZX11(NX-I,J,K)=PHYZ01(NZ-K)*HYZX11(NX-I,J,K)&
+                        -PHYZ02(NZ-K)*(EX1(NX-I,J,K+1)-EX1(NX-I,J,K))
+!
+               HY1(I,J,K)=HYXX01(I,J,K)+HYZX01(I,J,K)
+               HY1(NX-I,J,K)=HYXX11(NX-I,J,K)+HYZX11(NX-I,J,K)
+            END DO
+         END DO
+      END DO
+
+      DO J=2,NY-1
+         DO I=1,LPML
+            DO K=LPML+1,NZ-LPML-1
+               HYXX02(I,J,K)=PHYX01(I)*HYXX02(I,J,K)&
+                        +PHYX02(I)*(EZ2(I+1,J,K)-EZ2(I,J,K))
+!
+               HYZX02(I,J,K)=PHYZ01(K)*HYZX02(I,J,K)&
+                        -PHYZ02(K)*(EX2(I,J,K+1)-EX2(I,J,K))
+!
+               HYXX12(NX-I,J,K)=PHYX01(NX-I)*HYXX12(NX-I,J,K)&
+                        +PHYX02(NX-I)*(EZ2(NX-I+1,J,K)-EZ2(NX-I,J,K))
+!
+               HYZX12(NX-I,J,K)=PHYZ01(NZ-K)*HYZX12(NX-I,J,K)&
+                        -PHYZ02(NZ-K)*(EX2(NX-I,J,K+1)-EX2(NX-I,J,K))
+!
+               HY2(I,J,K)=HYXX02(I,J,K)+HYZX02(I,J,K)
+               HY2(NX-I,J,K)=HYXX12(NX-I,J,K)+HYZX12(NX-I,J,K)
+            END DO
+         END DO
+      END DO
+!
+!******************
+!*** K (FOR HY) ***
+!******************
+!
+      DO J=2,NY-1
+         DO K=1,LPML
+            DO I=1,NX-1
+               HYXZ01(I,J,K)=PHYX01(I)*HYXZ01(I,J,K)&
+                        +PHYX02(I)*(EZ1(I+1,J,K)-EZ1(I,J,K))
+!
+               HYZZ01(I,J,K)=PHYZ01(K)*HYZZ01(I,J,K)&
+                        -PHYZ02(K)*(EX1(I,J,K+1)-EX1(I,J,K))
+!
+               HYXZ11(I,J,NZ-K)=PHYX01(NX-I)*HYXZ11(I,J,NZ-K)&
+                        +PHYX02(NX-I)*(EZ1(I+1,J,NZ-K)-EZ1(I,J,NZ-K))
+!
+               HYZZ11(I,J,NZ-K)=PHYZ01(NZ-K)*HYZZ11(I,J,NZ-K)&
+                        -PHYZ02(NZ-K)*(EX1(I,J,NZ-K+1)-EX1(I,J,NZ-K))
+!
+               HY1(I,J,K)=HYXZ01(I,J,K)+HYZZ01(I,J,K)
+               HY1(I,J,NZ-K)=HYXZ11(I,J,NZ-K)+HYZZ11(I,J,NZ-K)
+            END DO
+         END DO
+      END DO
+
+      DO J=2,NY-1
+         DO K=1,LPML
+            DO I=1,NX-1
+               HYXZ02(I,J,K)=PHYX01(I)*HYXZ02(I,J,K)&
+                        +PHYX02(I)*(EZ2(I+1,J,K)-EZ2(I,J,K))
+!
+               HYZZ02(I,J,K)=PHYZ01(K)*HYZZ02(I,J,K)&
+                        -PHYZ02(K)*(EX2(I,J,K+1)-EX2(I,J,K))
+!
+               HYXZ12(I,J,NZ-K)=PHYX01(NX-I)*HYXZ12(I,J,NZ-K)&
+                        +PHYX02(NX-I)*(EZ2(I+1,J,NZ-K)-EZ2(I,J,NZ-K))
+!
+               HYZZ12(I,J,NZ-K)=PHYZ01(NZ-K)*HYZZ12(I,J,NZ-K)&
+                        -PHYZ02(NZ-K)*(EX2(I,J,NZ-K+1)-EX2(I,J,NZ-K))
+!
+               HY2(I,J,K)=HYXZ02(I,J,K)+HYZZ02(I,J,K)
+               HY2(I,J,NZ-K)=HYXZ12(I,J,NZ-K)+HYZZ12(I,J,NZ-K)
+            END DO
+         END DO
+      END DO
+!
+!******************
+!*** I (FOR HZ) ***
+!******************
+!
+      DO K=2,NZ-1
+         DO I=1,LPML
+            DO J=LPML+1,NY-LPML-1
+               HZXX01(I,J,K)=PHZX01(I)*HZXX01(I,J,K)&
+                        -PHZX02(I)*(EY1(I+1,J,K)-EY1(I,J,K))
+!
+               HZYX01(I,J,K)=PHZY01(J)*HZYX01(I,J,K)&
+                        +PHZY02(J)*(EX1(I,J+1,K)-EX1(I,J,K))
+!
+               HZXX11(NX-I,J,K)=PHZX01(NX-I)*HZXX11(NX-I,J,K)&
+                        -PHZX02(NX-I)*(EY1(NX-I+1,J,K)-EY1(NX-I,J,K))
+!
+               HZYX11(NX-I,J,K)=PHZY01(NY-J)*HZYX11(NX-I,J,K)&
+                        +PHZY02(NY-J)*(EX1(NX-I,J+1,K)-EX1(NX-I,J,K))
+!
+               HZ1(I,J,K)=HZXX01(I,J,K)+HZYX01(I,J,K)
+               HZ1(NX-I,J,K)=HZXX11(NX-I,J,K)+HZYX11(NX-I,J,K)
+            END DO
+         END DO
+      END DO
+
+      DO K=2,NZ-1
+         DO I=1,LPML
+            DO J=LPML+1,NY-LPML-1
+               HZXX02(I,J,K)=PHZX01(I)*HZXX02(I,J,K)&
+                        -PHZX02(I)*(EY2(I+1,J,K)-EY2(I,J,K))
+!
+               HZYX02(I,J,K)=PHZY01(J)*HZYX02(I,J,K)&
+                        +PHZY02(J)*(EX2(I,J+1,K)-EX2(I,J,K))
+!
+               HZXX12(NX-I,J,K)=PHZX01(NX-I)*HZXX12(NX-I,J,K)&
+                        -PHZX02(NX-I)*(EY2(NX-I+1,J,K)-EY2(NX-I,J,K))
+!
+               HZYX12(NX-I,J,K)=PHZY01(NY-J)*HZYX12(NX-I,J,K)&
+                        +PHZY02(NY-J)*(EX2(NX-I,J+1,K)-EX2(NX-I,J,K))
+!
+               HZ2(I,J,K)=HZXX02(I,J,K)+HZYX02(I,J,K)
+               HZ2(NX-I,J,K)=HZXX12(NX-I,J,K)+HZYX12(NX-I,J,K)
+            END DO
+         END DO
+      END DO
+!
+!******************
+!*** J (FOR HZ) ***
+!******************
+!
+      DO K=2,NZ-1
+         DO J=1,LPML
+            DO I=1,NX-1
+               HZXY01(I,J,K)=PHZX01(I)*HZXY01(I,J,K)&
+                        -PHZX02(I)*(EY1(I+1,J,K)-EY1(I,J,K))
+!
+               HZYY01(I,J,K)=PHZY01(J)*HZYY01(I,J,K)&
+                        +PHZY02(J)*(EX1(I,J+1,K)-EX1(I,J,K))
+!
+               HZXY11(I,NY-J,K)=PHZX01(NX-I)*HZXY11(I,NY-J,K)&
+                        -PHZX02(NX-I)*(EY1(I+1,NY-J,K)-EY1(I,NY-J,K))
+!
+               HZYY11(I,NY-J,K)=PHZY01(NY-J)*HZYY11(I,NY-J,K)&
+                        +PHZY02(NY-J)*(EX1(I,NY-J+1,K)-EX1(I,NY-J,K))
+!
+               HZ1(I,J,K)=HZXY01(I,J,K)+HZYY01(I,J,K)
+               HZ1(I,NY-J,K)=HZXY11(I,NY-J,K)+HZYY11(I,NY-J,K)
+            END DO
+         END DO
+      END DO
+
+      DO K=2,NZ-1
+         DO J=1,LPML
+            DO I=1,NX-1
+               HZXY02(I,J,K)=PHZX01(I)*HZXY02(I,J,K)&
+                        -PHZX02(I)*(EY2(I+1,J,K)-EY2(I,J,K))
+!
+               HZYY02(I,J,K)=PHZY01(J)*HZYY02(I,J,K)&
+                        +PHZY02(J)*(EX2(I,J+1,K)-EX2(I,J,K))
+!
+               HZXY12(I,NY-J,K)=PHZX01(NX-I)*HZXY12(I,NY-J,K)&
+                        -PHZX02(NX-I)*(EY2(I+1,NY-J,K)-EY2(I,NY-J,K))
+!
+               HZYY12(I,NY-J,K)=PHZY01(NY-J)*HZYY12(I,NY-J,K)&
+                        +PHZY02(NY-J)*(EX2(I,NY-J+1,K)-EX2(I,NY-J,K))
+!
+               HZ2(I,J,K)=HZXY02(I,J,K)+HZYY02(I,J,K)
+               HZ2(I,NY-J,K)=HZXY12(I,NY-J,K)+HZYY12(I,NY-J,K)
+            END DO
+         END DO
+      END DO
+!
+      RETURN
+      END
+!
+!-----------------------------------------------------------------------
+      SUBROUTINE EFT
+!-----------------------------------------------------------------------
+!
+      INCLUDE'fdtdcom.f90'
+!
+      DO N=1,NSTEP
+      FV1=FV1+CVA(N)*EXP((-CJ)*W*N*DT)*DT
+      FV2=FV2+CVB(N)*EXP((-CJ)*W*N*DT)*DT
+	    END DO
+      RETURN
+      END
+
+
+
+!!****************************************************************************
+!      SUBROUTINE DATAREFRECT
+!!****************************************************************************
+!!
+!      INCLUDE'fdtdcom.f90'
+!!
+!!*** DATA OF IMP,VFFT,IFFT,SPECT-V ***
+!!
+!
+!      DO N=1,MSTOPFREQ
+!         IF(CABS(CVA(N)).GT.0.0)THEN
+!         EINPUT(N)=CVA(N)
+!         EOUTPUT(N)=CVB(N)-CVA(N)
+!!         EOUTPUT(N)=CVB(N)
+!!         EOUTPUT(N)=CVC(N)
+!         BF=2*PI*F/FC
+!         REF(N)=(EOUTPUT(N)/EINPUT(N))*EXP(CJ*2*BF*(KST2-KOBS1)*DZ)
+!         SIMP(N)=(1+REF(N))/(1-REF(N))*Z0!/Z0
+!         ISOU(N)=ATAN2(AIMAG(REF(N)),REAL(REF(N)))*180/PI
+!
+!!          WRITE(41,*)F,",",REAL(REF(N))
+!!          WRITE(42,*)F,",",AIMAG(REF(N))
+!           WRITE(41,*)F,",",REAL(REF(N)),",",AIMAG(REF(N))
+!
+!           WRITE(43,*)F,",",CABS(REF(N))
+!!          WRITE(42,*)F,",",REAL(EINPUT(N)),",",AIMAG(EINPUT(N))
+!!          WRITE(43,*)F,",",REAL(EOUTPUT(N)),",",AIMAG(EOUTPUT(N))
+!          WRITE(44,*)F,",",cabs(SIMP(N))
+!          WRITE(45,*)F,",",ISOU(N)
+!
+!         END IF
+!
+!	   IF(CABS(CVC(N)).GT.0.0)THEN
+!!         EINPUT(N)=CVC(N)
+!!         EOUTPUT(N)=CVD(N)-CVC(N)
+!!         EOUTPUT(N)=CVB(N)
+!!         EOUTPUT(N)=CVC(N)
+!!         BF=2*PI*F/FC
+!!         REF(N)=(EOUTPUT(N)/EINPUT(N))*EXP(CJ*2*BF*(KOBS2-kst2)*DZ)
+!!         SIMP(N)=(1+REF(N))/(1-REF(N))*Z0!/Z0
+!!         ISOU(N)=ATAN2(AIMAG(REF(N)),REAL(REF(N)))*180/PI
+!
+!!          WRITE(41,*)F,",",REAL(REF(N))
+!!          WRITE(42,*)F,",",AIMAG(REF(N))
+!!           WRITE(46,*)F,",",REAL(REF(N)),",",AIMAG(REF(N))
+!!	         WRITE(47,*)F,",",CABS(REF(N))
+!!          WRITE(42,*)F,",",REAL(EINPUT(N)),",",AIMAG(EINPUT(N))
+!!          WRITE(43,*)F,",",REAL(EOUTPUT(N)),",",AIMAG(EOUTPUT(N))
+!!          WRITE(44,*)F,",",REAL(SIMP(N)),",",AIMAG(SIMP(N))
+!!          WRITE(48,*)F,",",ISOU(N)
+!
+!         END IF
+!
+!         F=F+DF
+!
+!      END DO
+!!
+!16    FORMAT(2E15.7)
+!17    FORMAT(3E15.7)
+!!
+!      RETURN
+!      END
+
+!!****************************************************************************
+!      SUBROUTINE DATAFEED
+!!****************************************************************************
+!!
+!      INCLUDE'fdtdcom.f90'
+!!
+!!*** V AND I OF FEEDPOINT ***
+!!
+!      OPEN(22,FILE='spl-v1.xy.csv')
+!      OPEN(23,FILE='spl-abs-v1.xy.csv')
+!      OPEN(24,FILE='spl-v2.xy.csv')
+!      OPEN(25,FILE='spl-abs-v2.xy.csv')
+!      OPEN(26,FILE='T_INPUTREAL.csv')
+!      OPEN(27,FILE='T_INPUTIMAG.csv')
+!      OPEN(28,FILE='T_OUTPUTREAL.csv')
+!      OPEN(29,FILE='T_OUTPUTIMAG.csv')
+!      OPEN(31,FILE='T_INPUTABS.csv')
+!      OPEN(32,FILE='T_OUTPUTABS.csv')
+!
+!      DO N=1,NSTEP
+!         WRITE(22,*)ET(N),",",REAL(CVA(N)),",",AIMAG(CVA(N))
+!         WRITE(23,*)ET(N),",",CABS(CVA(N))
+!         WRITE(24,*)ET(N),",",REAL(CVB(N)),",",AIMAG(CVB(N))
+!         WRITE(25,*)ET(N),",",CABS(CVB(N))
+!         WRITE(26,*)REAL(CVA(N))
+!         WRITE(27,*)AIMAG(CVA(N))
+!         WRITE(28,*)REAL(CVB(N)-CVA(N))
+!         WRITE(29,*)AIMAG(CVB(N)-CVA(N))
+!         WRITE(31,*)CABS(CVA(N))
+!         WRITE(32,*)CABS(CVB(N)-CVA(N))
+!      END DO
+!!
+! 16   FORMAT(3E15.7)
+!!
+!      CLOSE(22)
+!      CLOSE(23)
+!      CLOSE(24)
+!      CLOSE(25)
+!      CLOSE(26)
+!      CLOSE(27)
+!      CLOSE(28)
+!      CLOSE(29)
+!      CLOSE(31)
+!      CLOSE(32)
+!
+!      RETURN
+!      END
+!
+!-------------------------------------------------------
+      SUBROUTINE OUTPUT
+!------------------------------------------------------
+!
+      INCLUDE'fdtdcom.f90'
+      CHARACTER*8 OFILE(50)
+      CHARACTER*4 HEAD
+      DATA HEAD/'3dyz'/
+!
+!     FORXV
+!
+      AMPMAX=AMP
+      IF(N.LE.9) THEN
+         OFILE(L)=HEAD//CHAR(48)//CHAR(48)//CHAR(48)//&
+                    CHAR(48+N)//CHAR(0)
+         ELSE IF(N.GE.10.AND.N.LE.99) THEN
+            N1=N/10
+            N2=MOD(N,10)
+            OFILE(L)=HEAD//CHAR(48)//CHAR(48)//CHAR(48+N1)//&
+                    CHAR(48+N2)//CHAR(0)
+         ELSE IF(N.GE.100.AND.N.LE.999)THEN
+            N1=N/100
+            N2=(N-N1*100)/10
+            N3=MOD((N-N1*100),10)
+            OFILE(L)=HEAD//CHAR(48)//CHAR(48+N1)//CHAR(48+N2)//&
+                    CHAR(48+N3)//CHAR(0)
+	     ELSE
+            N1=N/1000
+            N2=(N-N1*1000)/100
+            N3=(N-N1*1000-N2*100)/10
+            N4=MOD((N-N1*1000-N2*100),10)
+            OFILE(L)=HEAD//CHAR(48+N1)//CHAR(48+N2)//CHAR(48+N3)//&
+                    CHAR(48+N4)//CHAR(0)
+
+         END IF
+!
+!          print *, OFILE(L)
+          OPEN(20,FILE=OFILE(L))
+!          DO J=1,NY
+!          DO I=1,NX
+!             A=INT(0.5+CABS(HZ1(I,J)))
+!
+!         IF(A.GT.255.OR.IDTHRE(I,J).EQ.1)THEN
+!             A=255
+!	      END IF
+!        I=NX1/2
+!        DO J=2,NY1
+!          DO K=1,NZ
+!             IF(CABS(EY2(I,J,K)).LE.AMPM)THEN
+!                NEY(J,K)=INT(CABS(EY2(I,J,K))/AMPM*255.0+0.5)
+!             ELSE
+!                NEY(J,K)=255
+!             END IF
+!!
+!            IF((IDONE(I,J,K).EQ.1).OR.(IDTWO(I,J,K).EQ.1)&
+!     		.OR.(IDTHRE(I,J,K).EQ.1).OR.(IDFOUR(I,J,K).EQ.1))THEN
+!                NEY(J,K)=255
+!            END IF
+!
+!
+!!
+!             WRITE(20,*)J,K,NEY(J,K)
+!!             WRITE(20,*) A
+!          END DO
+
+        J=NX1/2
+        DO I=1,NX1
+          DO K=1,NZ
+             IF(CABS(EX2(I,J,K)).LE.AMPM)THEN
+                NEY(I,K)=INT(CABS(EX2(I,J,K))/AMPM*1024.0+0.5)
+             ELSE
+                NEY(I,K)=1024
+             END IF
+!
+            IF((IDONE(I,J,K).EQ.1).OR.(IDTWO(I,J,K).EQ.1)&
+     		.OR.(IDTHRE(I,J,K).EQ.1).OR.(IDFOUR(I,J,K).EQ.1)&
+     		.OR.(IDFIVE(I,J,K).EQ.1))THEN
+                NEY(I,K)=1024
+            END IF
+
+
+!
+             WRITE(20,*)I,K,NEY(I,K)
+!             WRITE(20,*) A
+          END DO
+          WRITE(20,*)
+         END DO
+!
+!----FOR COLER BAR----------
+!
+!         DO I=1,20
+!             DO J=1,NY
+!              A=INT(0.5+FLOAT(J-1)/FLOAT(NY-1)*255.0)
+!               WRITE(30,*)I,J,A
+!             ENDDO
+!          ENDDO
+               CLOSE(20)
+
+!
+100      FORMAT(I4,E15.7)
+!
+          RETURN
+          END
+
+!--------------------------------------------------------
+      SUBROUTINE DATAIMP
+!--------------------------------------------------------
+!
+      INCLUDE'fdtdcom.f90'
+!
+!*** DATA OF IMP,VFFT,IFFT,SPECT-V ***
+!
+      OPEN(80,FILE='imp1.csv')
+      OPEN(81,FILE='vfft1.csv')
+      OPEN(82,FILE='ifft1.csv')
+      OPEN(83,FILE='spc-v1.csv')
+      OPEN(84,FILE='imp2.csv')
+      OPEN(85,FILE='vfft2.csv')
+      OPEN(86,FILE='ifft2.csv')
+      OPEN(87,FILE='spc-v2.csv')
+
+       F=0.0
+      DO N=1,MSTOPFREQ
+	     CZ1(N)=CVD1(N)/CI1(N)
+         CZ2(N)=CVD2(N)/CI2(N)
+         WRITE(80,*)F,",",REAL(CZ1(N)),",",AIMAG(CZ1(N)),",",CABS(CZ1(N))
+         WRITE(81,*)F,",",REAL(CVD1(N)),",",AIMAG(CVD1(N))
+         WRITE(82,*)F,",",REAL(CI1(N)),",",AIMAG(CI1(N))
+         WRITE(83,*)F,",",CABS(CVD1(N))
+         WRITE(84,*)F,",",REAL(CZ2(N)),",",AIMAG(CZ2(N)),",",CABS(CZ2(N))
+         WRITE(85,*)F,",",REAL(CVD2(N)),",",AIMAG(CVD2(N))
+         WRITE(86,*)F,",",REAL(CI2(N)),",",AIMAG(CI2(N))
+         WRITE(87,*)F,",",CABS(CVD2(N))
+         F=F+DF
+      END DO
+!
+      CLOSE(80)
+      CLOSE(81)
+      CLOSE(82)
+      CLOSE(83)
+      CLOSE(84)
+      CLOSE(85)
+      CLOSE(86)
+      CLOSE(87)
+!
+      RETURN
+      END
+!
+!-----------------------------------------------------------------------
+      SUBROUTINE CEFFT(N,CX,ICON,IRR)
+!-----------------------------------------------------------------------
+      IMPLICIT REAL(A-B,D-H,O-Z)
+      IMPLICIT COMPLEX(C)
+      DIMENSION CX(N)
+      DATA PAI/3.1415926535/
+!
+      IF(N.LT.2) GO TO 900
+      FN=N
+      MC=NINT(LOG10(FN)/LOG10(2.0))
+      II=2**MC-N
+      IF(II.NE.0) GO TO 910
+!
+      DO 50 L=1,MC
+      KL=2**(L-1)
+      FKL=KL
+      FJL=0.5*FN/FKL
+      JL=FJL
+      JL2=2*JL
+      TH=2.0*PAI*FKL/FN
+      TH2=0.5*TH
+      ST=SIN(TH)
+      TT=-2.0*SIN(TH2)*SIN(TH2)
+      CT=CMPLX(TT,ST)
+!
+      DO 40 K=1,KL
+      JJ=JL2*(K-1)
+      CU=(1.0,0.0)
+!
+      DO 30 J=1,JL
+      J1=J+JJ
+      J2=J1+JL
+      CA=CX(J1)-CX(J2)
+      CX(J1)=CX(J1)+CX(J2)
+!
+      IF(ICON.LT.0) GO TO 10
+!
+      CUC=CONJG(CU)
+      CX(J2)=CA*CUC
+      GO TO 20
+!
+   10 CONTINUE
+      CX(J2)=CA*CU
+   20 CONTINUE
+      CU=CU+CU*CT
+   30 CONTINUE
+   40 CONTINUE
+   50 CONTINUE
+!
+!
+!     BIT REVERSAL
+!     ------------
+      FM=MC
+      FFM=0.5*FM
+      LLB=FFM
+!
+      DO 80 LB=1,LLB
+      KLB=2**(LB-1)
+      FKLB=KLB
+      FJLB=0.25*FN/FKLB
+      JLB=FJLB
+      JB2=2*JLB
+      JB4=4*JLB
+!
+      DO 70 KB=1,KLB
+      JJB=JB4*(KB-1)
+      JF1=JJB+KLB
+      JF2=JJB+JB2
+!
+      DO 60 JB=1,JLB
+      FF=JB-1
+      FF=FF/FKLB
+      JFF=FF
+      JF=JB+JFF*KLB
+      J1=JF+JF1
+      J2=JF+JF2
+      CT=CX(J1)
+      CX(J1)=CX(J2)
+      CX(J2)=CT
+   60 CONTINUE
+   70 CONTINUE
+   80 CONTINUE
+!
+!     ERROR CONDITION CODE
+!     --------------------
+      IRR=0
+      RETURN
+  900 CONTINUE
+      IRR=-1
+      RETURN
+  910 CONTINUE
+      IRR=-2
+      RETURN
+      END
+
+!-----------------------------------------------------------------------
+!     plot�ｿｽt�ｿｽ@�ｿｽC�ｿｽ�ｿｽ�ｿｽ�成�ｿｽp
+!-----------------------------------------------------------------------
+      subroutine plotmaker
+      include 'fdtdcom.f90'
+
+      integer ii,jj
+      character(4) b
+
+      open (17, file='03dplot.gpl')
+      write(17,*) "set ticslevel 0"
+      write(17,*) "set zrange[-1:1]"
+						write(17,*) "splot ""3dyz0001"" with lines"
+
+      do ii=kizami,nstep,kizami
+        write(b,'(I4.4)') ii
+        write(17,*) "splot ""3dyz"// b //""" with lines"
+        write(17,*) "pause 0.1"
+      end do
+      close(17)
+
+      open (17, file='02dplot.gpl')
+      write(17,*) "set size 1.1"
+      write(17,*)"set pm3d"
+      write(17,*)"set pm3d map"
+      write(17,*) "set ticslevel 0"
+      write(17,*) "set cbrange [0:255]"
+      write(17,'(A)', advance='no') "set palette defined"
+      write(17,*) "(-1 ""blue"", 0 ""white"", 1 ""red"")"
+!						write(17,*) "set term gif animate"
+!            write(17,*) " set output ""sample1.gif"" "
+
+
+						write(17,*) "splot ""3dyz0001"" with pm3d"
+
+      do ii=kizami,nstep,kizami
+        write(b,'(I4.4)') ii
+        write(17,*) "splot ""3dyz"// b //""" with pm3d"
+        write(17,*) "pause 0.1"
+      end do
+
+      close(17)
+
+      end subroutine plotmaker
+

@@ -68,7 +68,7 @@ set number
 " 現在の行を強調表示
 set cursorline
 " 現在の行を強調表示(縦)
-""set cursorcolumn
+"set cursorcolumn
 " 行末の1文字先までカーソルを移動できるように
 set virtualedit=onemore
 " インデントはスマートインデント
@@ -80,13 +80,13 @@ set showmatch
 " ステータスラインを常に表示
 set laststatus=2
 " コマンドラインの補完
-"set wildmode=list:longest
+set wildmode=list:longest
 " Vimの「%」を拡張する
 source $VIMRUNTIME/macros/matchit.vim 
 " コマンドモードの補完
-"set wildmenu 
+set wildmenu 
 " 保存するコマンド履歴の数
-set history=100
+set history=300
 " 折り返し時に表示行単位での移動できるようにする
 nnoremap j gj
 nnoremap k gk
@@ -120,8 +120,6 @@ set incsearch
 set wrapscan
 " 検索語をハイライト表示
 set hlsearch
-" ESCキー2度押しでハイライトの切り替え
-nnoremap <F3> :noh<CR>
 
 "マウス設定
 if &term =~ "xterm"
@@ -155,6 +153,7 @@ au! BufRead,BufNewFile *.f90 let b:fortran_do_enddo=1
 "shortcut
 
 syntax on
+set t_Co=256
 colorscheme onedark
 set nowrap
 set vb t_vb=
@@ -176,9 +175,20 @@ inoremap <C-k> <Up>
 inoremap <C-h> <Left>
 inoremap <C-l> <Right>
 nnoremap <CR> A<CR><ESC>
-nnoremap <F4> :set scb <CR>
-nnoremap <F5> :set noscb <CR>
+nnoremap <F3> :noh<CR>
+nnoremap <F4> :windo diffthis <CR>
+nnoremap <F9> :cd %:h <CR>
+nnoremap <F10> :!htop <CR>
+nnoremap <F11> :!octave <CR>
+nnoremap <F12> :!./do.sh <CR>
+
+nnoremap <C-c> :!rm -f -v *.o *.vtk fdtd_vtk && make && ./fdtd_vtk <CR>
+nnoremap <C-i> :!ifort -mcmodel=large -shared-intel -parallel % && time OMP_NUM_THREADS=
+
 nnoremap ; :
 xnoremap <expr> p 'pgv"'.v:register.'y`>'
 nnoremap <silent><C-e> :NERDTreeToggle<CR>
+
 set backspace =indent,eol,start
+set diffopt=filler,vertical
+let g:winresizer_start_key= '<C-W>'

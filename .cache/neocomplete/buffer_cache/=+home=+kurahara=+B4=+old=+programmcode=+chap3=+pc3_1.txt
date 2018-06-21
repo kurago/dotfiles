@@ -1,0 +1,1 @@
+{'module', 'fdtd_variable', 'implicit', 'none', 'integer', 'nstep', 'parameter', 'real', 'exlold', 'exrold', 'program', 'fdtd_1d', 'call', 'setup', 'open', 'file', 'extm', 'ex100', 'ex700', 'write', 'time', 'step', 'e_cal', 'h_cal', 'close', 'format', 'subroutine', 'eps0', 'epsr', 'pulse', 'epsd', 'sgmd', 'then', 'else', 'sqrt', 'function'}

@@ -1,0 +1,1 @@
+{'subroutine', 'dyout', 'fdtdcom', 'implicit', 'none', 'integer', 'double', 'precision', 'CHARACTER', 'NAMEXZ2', 'NAMEXZ', 'WRITE', 'FORMAT', 'HxzR2', 'write', 'splot', 'namexz2', 'using', 'pm3d', 'pause', 'namexz', 'Ez_distribution_R1', 'OPEN', 'UNIT', 'FILE', 'STATUS', 'replace', 'dmax1', 'JFEED', 'IFEED', 'sqrt', 'epsd', 'idone', 'close', 'time_E', 'real', 'KFEED'}

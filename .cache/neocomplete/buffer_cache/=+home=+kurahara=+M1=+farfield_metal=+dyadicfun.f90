@@ -1,0 +1,1 @@
+{'subroutine', 'calRe', 'THETA', 'fdtdcom', 'implicit', 'none', 'double', 'precision', 'sqrt', 'theta', 'calRm', 'IANGLE', 'jitsubu', 'kyobu', 'INTEGER', 'then', 'elseif', 'THEN', 'else', 'Rtmpara', 'calTe', 'CSQRT', 'CMPLX', 'WRITE', 'calTm', 'cmplx', 'write', 'calReS', 'complex', 'FREQIMP', 'cexp'}

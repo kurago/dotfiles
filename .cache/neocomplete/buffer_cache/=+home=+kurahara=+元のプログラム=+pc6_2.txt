@@ -1,0 +1,1 @@
+{'module', 'far_field', 'fdtd_variable', 'complex', 'pointer', 'cexpe', 'cexph', 'parameter', 'integer', 'itgstr', 'itgend', 'subroutine', 'init_far', 'nintg', 'tintg', 'freq', 'nstep', 'omega', 'inifar', 'sur1f', 'hatx', 'haty', 'hatz', 'cexp', 'then', 'cofe', 'else', 'call', 'sur1e', 'sur6e', 'far_e', 'cofh', 'sur1h', 'sur6h', 'far_h'}

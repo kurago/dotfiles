@@ -1,0 +1,1 @@
+{'SUBROUTINE', 'currentX', 'fdtdcom', 'implicit', 'none', 'integer', 'double', 'precision', 'OPEN', 'FILE', 'result', 'fdtd', 'currnt', 'kfeed', 'jfeed', 'COFE', 'close', 'CEXPE', 'CEXP', 'CMPLX', 'OMEGA', 'ITGSTR', 'ITGEND', 'THEN', 'ELSE', 'call', 'Iout', 'write', 'real', 'aimag'}

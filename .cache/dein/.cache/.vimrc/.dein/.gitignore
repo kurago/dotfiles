@@ -1,4 +1,1 @@
-.bundle
-mysession.vim
-Gemfile.lock
-test/vendor/bundle
+/doc/tags
